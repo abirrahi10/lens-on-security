@@ -1,7 +1,9 @@
 ---
 import type { Post } from '../data/posts';
 const { post } = Astro.props as { post: Post };
-const base = import.meta.env.BASE_URL;
+const base = import.meta.env.BASE_URL.endsWith('/')
+  ? import.meta.env.BASE_URL
+  : `${import.meta.env.BASE_URL}/`;
 ---
 <article class="post-card">
   <div class="card-gallery" aria-label={`Image preview for ${post.title}`}>
