@@ -1,0 +1,72 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { posts } from '../../data/posts';
+
+export function getStaticPaths() {
+  return posts.map((post) => ({ params: { slug: post.slug }, props: { post } }));
+}
+
+const { post } = Astro.props;
+const base = import.meta.env.BASE_URL;
+---
+<BaseLayout title={`${post.title} — Lens on Security`} description={post.dek}>
+  <article class="article shell">
+    <header class="article-header">
+      <a class="back" href={base}>← All notes</a>
+      <p class="kicker">{post.tags.join(' / ')}</p>
+      <h1>{post.title}</h1>
+      <p class="article-dek">{post.dek}</p>
+      <p class="eyebrow">{post.date} <span aria-hidden="true">·</span> {post.readTime}</p>
+    </header>
+    <section class="article-gallery" aria-label={`Image gallery for ${post.title}`}>
+      <div class="article-gallery-track" data-gallery-track>
+        {post.images.map((image) => (
+          <figure>
+            <img class="article-image" src={`${base}${image.src.slice(1)}`} alt={image.alt} />
+          </figure>
+        ))}
+      </div>
+      <button type="button" class="article-gallery-button previous" data-gallery-direction="previous" aria-label="Previous image">←</button>
+      <button type="button" class="article-gallery-button next" data-gallery-direction="next" aria-label="Next image">→</button>
+      <p class="article-gallery-count" aria-live="polite">Image 1 of {post.images.length}</p>
+    </section>
+    <div class="article-copy">
+      {post.body.map((paragraph) => <p>{paragraph}</p>)}
+    </div>
+    {post.sources && post.sources.length > 0 && (
+      <section class="sources" aria-labelledby="sources-title">
+        <p class="kicker" id="sources-title">Sources</p>
+        <ol>
+          {post.sources.map((url) => (
+            <li>
+              <a href={url} target="_blank" rel="noopener noreferrer">{new URL(url).hostname.replace('www.', '')}</a>
+            </li>
+          ))}
+        </ol>
+      </section>
+    )}
+  </article>
+</BaseLayout>
+
+<script>
+  document.querySelectorAll<HTMLElement>('.article-gallery').forEach((gallery) => {
+    const track = gallery.querySelector<HTMLElement>('[data-gallery-track]');
+    const count = gallery.querySelector<HTMLElement>('.article-gallery-count');
+    const slides = track?.querySelectorAll('figure') ?? [];
+    if (!track) return;
+
+    const updateCount = () => {
+      if (!count) return;
+      const index = Math.round(track.scrollLeft / track.clientWidth);
+      count.textContent = `Image ${index + 1} of ${slides.length}`;
+    };
+
+    gallery.querySelectorAll<HTMLButtonElement>('[data-gallery-direction]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const direction = button.dataset.galleryDirection === 'next' ? 1 : -1;
+        track.scrollBy({ left: direction * track.clientWidth, behavior: 'smooth' });
+      });
+    });
+    track.addEventListener('scroll', updateCount, { passive: true });
+  });
+</script>

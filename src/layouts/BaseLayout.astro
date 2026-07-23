@@ -1,0 +1,18 @@
+---
+import '../styles/global.css';
+
+interface Props { title?: string; description?: string }
+const { title = 'Lens on Security', description = 'Security concepts, seen through photographs.' } = Astro.props;
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="description" content={description} />
+    <title>{title}</title>
+  </head>
+  <body>
+    <main><slot /></main>
+  </body>
+</html>

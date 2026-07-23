@@ -1,0 +1,49 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PostCard from '../components/PostCard.astro';
+import { posts } from '../data/posts';
+---
+<BaseLayout>
+  <section class="shell">
+    <header class="site-header">
+      <a class="wordmark" href={import.meta.env.BASE_URL}>Lens <span>on</span> Security</a>
+      <p>A cybersecurity journey through photographs.</p>
+    </header>
+
+    <section class="intro" aria-labelledby="page-title">
+      <p class="kicker">A visual journal by Abir Rahi</p>
+      <h1 id="page-title">Security concepts,<br /><em>in plain sight.</em></h1>
+      <p class="intro-copy">Security is everywhere, once you know how to look. This is a collection of photographs and notes connecting ordinary scenes to the systems, habits, and decisions that keep us safe in a digital world.</p>
+    </section>
+
+    <section class="reading-room" aria-label="Search and browse notes">
+      <label class="search-box" for="post-search">
+        <span class="search-icon" aria-hidden="true">⌕</span>
+        <input id="post-search" type="search" placeholder="Search notes by title or topic" autocomplete="off" />
+      </label>
+      <div class="post-grid" id="post-grid">
+        {posts.map((post) => <PostCard post={post} />)}
+      </div>
+      <p class="no-results" id="no-results" hidden>No notes match that search yet.</p>
+    </section>
+
+    <footer>© 2026 Lens on Security <span aria-hidden="true">·</span> Built as a learning journal.</footer>
+  </section>
+</BaseLayout>
+
+<script>
+  const search = document.querySelector<HTMLInputElement>('#post-search');
+  const cards = [...document.querySelectorAll<HTMLElement>('.post-card')];
+  const emptyState = document.querySelector<HTMLElement>('#no-results');
+
+  search?.addEventListener('input', () => {
+    const query = search.value.trim().toLowerCase();
+    let visible = 0;
+    cards.forEach((card) => {
+      const matches = card.textContent?.toLowerCase().includes(query) ?? false;
+      card.hidden = !matches;
+      if (matches) visible += 1;
+    });
+    if (emptyState) emptyState.hidden = visible !== 0;
+  });
+</script>

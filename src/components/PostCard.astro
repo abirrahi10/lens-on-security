@@ -1,0 +1,41 @@
+---
+import type { Post } from '../data/posts';
+const { post } = Astro.props as { post: Post };
+const base = import.meta.env.BASE_URL;
+---
+<article class="post-card">
+  <div class="card-gallery" aria-label={`Image preview for ${post.title}`}>
+    <div class="gallery-track" data-gallery-track>
+      {post.images.map((image, index) => (
+        <a class="card-image" href={`${base}posts/${post.slug}/`} aria-label={`Read ${post.title}, image ${index + 1} of ${post.images.length}`}>
+          <img src={`${base}${image.src.slice(1)}`} alt={image.alt} loading="lazy" />
+        </a>
+      ))}
+    </div>
+    <div class="gallery-controls">
+      <button type="button" class="gallery-button" data-gallery-direction="previous" aria-label="Previous image">←</button>
+      <button type="button" class="gallery-button" data-gallery-direction="next" aria-label="Next image">→</button>
+    </div>
+  </div>
+  <div class="card-body">
+    <p class="eyebrow">{post.date} <span aria-hidden="true">·</span> {post.readTime}</p>
+    <h2><a href={`${base}posts/${post.slug}/`}>{post.title}</a></h2>
+    <p class="dek">{post.dek}</p>
+    <ul class="tags" aria-label="Topics">
+      {post.tags.map((tag) => <li>{tag}</li>)}
+    </ul>
+  </div>
+</article>
+
+<script>
+  document.querySelectorAll('.card-gallery').forEach((gallery) => {
+    const track = gallery.querySelector<HTMLElement>('[data-gallery-track]');
+    if (!track) return;
+    gallery.querySelectorAll<HTMLButtonElement>('[data-gallery-direction]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const direction = button.dataset.galleryDirection === 'next' ? 1 : -1;
+        track.scrollBy({ left: direction * track.clientWidth, behavior: 'smooth' });
+      });
+    });
+  });
+</script>
