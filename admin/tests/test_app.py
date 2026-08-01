@@ -188,6 +188,27 @@ The published article body.
         self.assertNotIn("published_commit", drafts[0])
         self.assertTrue(any(call.args[:3] == ("rm", "-r", "--") for call in run_git.call_args_list))
 
+    def test_publish_recreates_content_directory_after_last_post_was_unpublished(self):
+        self.client.post(
+            "/admin/new",
+            data=self.valid_form(),
+            content_type="multipart/form-data",
+            environ_base={"REMOTE_ADDR": "192.168.4.20"},
+        )
+        draft = publisher.list_drafts()[0]
+        content_dir = publisher.REPO_DIR / "src" / "content" / "blog"
+        content_dir.rmdir()
+
+        def git_result(*args):
+            return "abc123" if args == ("rev-parse", "HEAD") else ""
+
+        with patch.object(publisher, "run_git", side_effect=git_result):
+            commit = publisher.publish_draft(draft)
+
+        self.assertEqual(commit, "abc123")
+        self.assertTrue((content_dir / "a-new-lens.md").is_file())
+        self.assertTrue((publisher.REPO_DIR / "public" / "images" / "a-new-lens").is_dir())
+
 
 if __name__ == "__main__":
     unittest.main()

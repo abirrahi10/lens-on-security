@@ -371,6 +371,7 @@ def publish_draft(draft: dict) -> str:
         if status:
             raise RuntimeError("The publishing repository has uncommitted changes and needs attention.")
         run_git("pull", "--ff-only", GIT_REMOTE, GIT_BRANCH)
+        content_file.parent.mkdir(parents=True, exist_ok=True)
         public_dir.mkdir(parents=True, exist_ok=True)
         source_dir = draft_path(draft["id"]) / "images"
         for image in draft["images"]:
