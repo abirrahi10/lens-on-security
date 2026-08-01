@@ -18,6 +18,9 @@
         <h1>{{ draft.title or "New article" }}</h1>
       </div>
       <div class="actions">
+        {% if draft.id and not draft.published_commit %}
+          <button class="button danger" type="submit" formaction="{{ url_for('delete_draft', draft_id=draft.id) }}" formnovalidate onclick="return confirm('Permanently delete this private draft and its uploaded photographs?');">Delete draft</button>
+        {% endif %}
         <button class="button secondary" type="submit" formaction="{{ url_for('preview') }}" formtarget="_blank">Preview</button>
         <button class="button secondary" type="submit" name="action" value="save">Save draft</button>
         <button class="button primary" type="submit" name="action" value="publish">Publish</button>

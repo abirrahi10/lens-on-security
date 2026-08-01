@@ -19,6 +19,7 @@ import markdown
 import yaml
 from flask import Flask, abort, flash, redirect, render_template, request, send_from_directory, session, url_for
 from PIL import Image, ImageOps, UnidentifiedImageError
+from werkzeug.exceptions import NotFound
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 
@@ -40,6 +41,7 @@ MAX_REQUEST_BYTES = 80 * 1024 * 1024
 SLUG_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 DRAFT_ID_RE = re.compile(r"^[a-f0-9]{32}$")
 PUBLISH_LOCK = threading.Lock()
+FRONTMATTER_RE = re.compile(r"\A---\r?\n(.*?)\r?\n---\r?\n?(.*)\Z", re.DOTALL)
 
 app = Flask(__name__)
 app.config.update(
@@ -119,6 +121,98 @@ def list_drafts() -> list[dict]:
         except (OSError, json.JSONDecodeError):
             continue
     return sorted(drafts, key=lambda item: item.get("updated_at", ""), reverse=True)
+
+
+def load_published_post(slug: str) -> dict:
+    if not SLUG_RE.fullmatch(slug):
+        abort(404)
+    path = REPO_DIR / "src" / "content" / "blog" / f"{slug}.md"
+    if not path.is_file():
+        abort(404)
+    match = FRONTMATTER_RE.fullmatch(path.read_text(encoding="utf-8"))
+    if not match:
+        raise ValueError(f"{path.name} does not contain valid Markdown frontmatter.")
+    metadata = yaml.safe_load(match.group(1)) or {}
+    if metadata.get("draft", False):
+        abort(404)
+    return {**metadata, "slug": slug, "path": path, "body": match.group(2).strip()}
+
+
+def list_published_posts() -> list[dict]:
+    content_dir = REPO_DIR / "src" / "content" / "blog"
+    posts = []
+    for path in content_dir.glob("*.md"):
+        try:
+            posts.append(load_published_post(path.stem))
+        except NotFound:
+            continue
+        except (OSError, ValueError, yaml.YAMLError):
+            app.logger.exception("Could not load published article %s", path)
+    return sorted(posts, key=lambda item: item.get("date", ""), reverse=True)
+
+
+def private_draft_for_slug(slug: str) -> dict | None:
+    return next((draft for draft in list_drafts() if draft.get("slug") == slug), None)
+
+
+def import_published_images(post: dict, draft: dict) -> list[dict]:
+    image_dir = draft_path(draft["id"]) / "images"
+    image_dir.mkdir(parents=True, exist_ok=True)
+    imported = []
+    existing = {image.get("filename"): image for image in draft.get("images", [])}
+    allowed_public_dir = (REPO_DIR / "public" / "images" / post["slug"]).resolve()
+
+    for image in post.get("images", []):
+        source_value = str(image.get("src", ""))
+        source = (REPO_DIR / "public" / source_value.lstrip("/")).resolve()
+        try:
+            source.relative_to(allowed_public_dir)
+        except ValueError as error:
+            raise ValueError(f"The image path {source_value} is outside this article's image folder.") from error
+        if not source.is_file():
+            raise ValueError(f"The published image {source_value} is missing from the repository.")
+
+        original_name = source.name
+        if original_name in existing and (image_dir / original_name).is_file():
+            imported.append({"filename": original_name, "alt": str(image.get("alt", ""))})
+            continue
+
+        filename = f"{uuid.uuid4().hex}.jpg"
+        destination = image_dir / filename
+        with Image.open(source) as opened:
+            normalized = ImageOps.exif_transpose(opened)
+            normalized.thumbnail((MAX_IMAGE_EDGE, MAX_IMAGE_EDGE))
+            if normalized.mode != "RGB":
+                background = Image.new("RGB", normalized.size, "white")
+                if "A" in normalized.getbands():
+                    background.paste(normalized, mask=normalized.getchannel("A"))
+                else:
+                    background.paste(normalized)
+                normalized = background
+            normalized.save(destination, format="JPEG", quality=88, optimize=True)
+        imported.append({"filename": filename, "alt": str(image.get("alt", ""))})
+    return imported
+
+
+def restore_as_private_draft(post: dict) -> dict:
+    draft = private_draft_for_slug(post["slug"]) or {
+        "id": uuid.uuid4().hex,
+        "created_at": datetime.now().isoformat(),
+    }
+    draft.update(
+        title=post.get("title", ""),
+        slug=post["slug"],
+        dek=post.get("dek", ""),
+        date=post.get("date", ""),
+        read_time=post.get("readTime", ""),
+        tags=list(post.get("tags", [])),
+        sources=list(post.get("sources", [])),
+        body=post.get("body", ""),
+        updated_at=datetime.now().isoformat(),
+    )
+    draft["images"] = import_published_images(post, draft)
+    save_draft_file(draft)
+    return draft
 
 
 def validate_url(value: str) -> bool:
@@ -295,7 +389,8 @@ def root():
 
 @app.get("/admin/")
 def dashboard():
-    return render_template("dashboard.html", drafts=list_drafts())
+    drafts = [draft for draft in list_drafts() if not draft.get("published_commit")]
+    return render_template("dashboard.html", drafts=drafts, published_posts=list_published_posts())
 
 
 @app.get("/admin/drafts/<draft_id>/images/<filename>")
@@ -370,6 +465,49 @@ def delete_image(draft_id: str, filename: str):
     save_draft_file(draft)
     flash("Photograph removed.", "success")
     return redirect(url_for("edit_draft", draft_id=draft_id))
+
+
+@app.post("/admin/drafts/<draft_id>/delete")
+def delete_draft(draft_id: str):
+    require_csrf()
+    draft = load_draft(draft_id)
+    if draft.get("published_commit"):
+        flash("Published articles cannot be deleted from the draft manager.", "error")
+        return redirect(url_for("edit_draft", draft_id=draft_id))
+
+    title = draft.get("title") or "Untitled article"
+    shutil.rmtree(draft_path(draft_id))
+    flash(f'Draft "{title}" and its uploaded photographs were deleted.', "success")
+    return redirect(url_for("dashboard"))
+
+
+@app.post("/admin/posts/<slug>/unpublish")
+def unpublish_post(slug: str):
+    require_csrf()
+    try:
+        with PUBLISH_LOCK:
+            if run_git("status", "--porcelain"):
+                raise RuntimeError("The publishing repository has uncommitted changes and needs attention.")
+            run_git("pull", "--ff-only", GIT_REMOTE, GIT_BRANCH)
+            post = load_published_post(slug)
+            draft = restore_as_private_draft(post)
+            public_dir = REPO_DIR / "public" / "images" / slug
+            targets = [str(post["path"].relative_to(REPO_DIR))]
+            if public_dir.is_dir():
+                targets.append(str(public_dir.relative_to(REPO_DIR)))
+            run_git("rm", "-r", "--", *targets)
+            run_git("commit", "-m", f"Unpublish: {post['title']}")
+            run_git("push", GIT_REMOTE, GIT_BRANCH)
+            draft.pop("published_commit", None)
+            draft.pop("published_at", None)
+            draft["unpublished_commit"] = run_git("rev-parse", "HEAD")
+            save_draft_file(draft)
+        flash("Article unpublished and restored as a private draft. The public site is rebuilding now.", "success")
+        return redirect(url_for("edit_draft", draft_id=draft["id"]))
+    except (subprocess.SubprocessError, OSError, RuntimeError, ValueError, yaml.YAMLError) as error:
+        app.logger.exception("Unpublishing failed")
+        flash(str(error), "error")
+        return redirect(url_for("dashboard"))
 
 
 @app.post("/admin/preview")

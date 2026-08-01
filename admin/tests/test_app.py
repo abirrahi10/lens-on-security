@@ -3,6 +3,7 @@ import os
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from PIL import Image
 
@@ -15,6 +16,9 @@ class PublisherTests(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
         publisher.DRAFT_DIR = Path(self.temporary.name) / "drafts"
+        publisher.REPO_DIR = Path(self.temporary.name) / "repository"
+        (publisher.REPO_DIR / "src" / "content" / "blog").mkdir(parents=True)
+        (publisher.REPO_DIR / "public" / "images").mkdir(parents=True)
         publisher.app.config.update(TESTING=True, SECRET_KEY="test-secret")
         self.client = publisher.app.test_client()
 
@@ -45,9 +49,52 @@ class PublisherTests(unittest.TestCase):
             "action": "save",
         }
 
+    def add_published_post(self):
+        content = publisher.REPO_DIR / "src" / "content" / "blog" / "live-article.md"
+        content.write_text(
+            """---
+title: Live Article
+dek: Already on the public website.
+date: August 1, 2026
+readTime: 2 min read
+tags: [identity]
+images:
+  - src: /images/live-article/photo.png
+    alt: A green square
+sources: []
+draft: false
+---
+
+The published article body.
+""",
+            encoding="utf-8",
+        )
+        image_dir = publisher.REPO_DIR / "public" / "images" / "live-article"
+        image_dir.mkdir(parents=True)
+        Image.new("RGB", (40, 40), "green").save(image_dir / "photo.png", format="PNG")
+        return content
+
     def test_dashboard_is_available_from_private_address(self):
         response = self.client.get("/admin/", environ_base={"REMOTE_ADDR": "10.47.12.20"})
         self.assertEqual(response.status_code, 200)
+
+    def test_dashboard_lists_articles_from_publishing_repository(self):
+        self.add_published_post()
+
+        response = self.client.get("/admin/", environ_base={"REMOTE_ADDR": "10.47.12.20"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"Live Article", response.data)
+        self.assertIn(b"Unpublish", response.data)
+
+    def test_dashboard_ignores_repository_drafts(self):
+        content = publisher.REPO_DIR / "src" / "content" / "blog" / "hidden.md"
+        content.write_text("---\ntitle: Hidden\ndraft: true\n---\n\nNot public.\n", encoding="utf-8")
+
+        response = self.client.get("/admin/", environ_base={"REMOTE_ADDR": "10.47.12.20"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn(b"Hidden", response.data)
 
     def test_public_address_is_denied(self):
         response = self.client.get("/admin/", environ_base={"REMOTE_ADDR": "203.0.113.4"})
@@ -74,6 +121,72 @@ class PublisherTests(unittest.TestCase):
         with Image.open(saved) as result:
             self.assertEqual(result.format, "JPEG")
             self.assertFalse(result.getexif())
+
+    def test_private_draft_and_images_can_be_deleted(self):
+        self.client.post(
+            "/admin/new",
+            data=self.valid_form(),
+            content_type="multipart/form-data",
+            environ_base={"REMOTE_ADDR": "192.168.4.20"},
+        )
+        draft = publisher.list_drafts()[0]
+        directory = publisher.draft_path(draft["id"])
+
+        response = self.client.post(
+            f'/admin/drafts/{draft["id"]}/delete',
+            data={"csrf_token": self.csrf()},
+            environ_base={"REMOTE_ADDR": "192.168.4.20"},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.location, "/admin/")
+        self.assertFalse(directory.exists())
+        self.assertEqual(publisher.list_drafts(), [])
+
+    def test_published_article_record_cannot_be_deleted(self):
+        self.client.post(
+            "/admin/new",
+            data=self.valid_form(),
+            content_type="multipart/form-data",
+            environ_base={"REMOTE_ADDR": "192.168.4.20"},
+        )
+        draft = publisher.list_drafts()[0]
+        draft["published_commit"] = "abc123"
+        publisher.save_draft_file(draft)
+
+        response = self.client.post(
+            f'/admin/drafts/{draft["id"]}/delete',
+            data={"csrf_token": self.csrf()},
+            environ_base={"REMOTE_ADDR": "192.168.4.20"},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.location, f'/admin/drafts/{draft["id"]}')
+        self.assertTrue(publisher.draft_path(draft["id"]).is_dir())
+
+    def test_published_article_can_be_unpublished_to_private_draft(self):
+        self.add_published_post()
+
+        def git_result(*args):
+            return "abc123" if args == ("rev-parse", "HEAD") else ""
+
+        with patch.object(publisher, "run_git", side_effect=git_result) as run_git:
+            response = self.client.post(
+                "/admin/posts/live-article/unpublish",
+                data={"csrf_token": self.csrf()},
+                environ_base={"REMOTE_ADDR": "192.168.4.20"},
+            )
+
+        self.assertEqual(response.status_code, 302)
+        drafts = publisher.list_drafts()
+        self.assertEqual(len(drafts), 1)
+        self.assertEqual(drafts[0]["slug"], "live-article")
+        self.assertEqual(drafts[0]["body"], "The published article body.")
+        self.assertEqual(len(drafts[0]["images"]), 1)
+        imported = publisher.draft_path(drafts[0]["id"]) / "images" / drafts[0]["images"][0]["filename"]
+        self.assertTrue(imported.is_file())
+        self.assertNotIn("published_commit", drafts[0])
+        self.assertTrue(any(call.args[:3] == ("rm", "-r", "--") for call in run_git.call_args_list))
 
 
 if __name__ == "__main__":

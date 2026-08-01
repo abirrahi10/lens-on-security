@@ -10,20 +10,67 @@
     <a class="button primary" href="{{ url_for('new_draft') }}">New article</a>
   </section>
 
+  {% if published_posts %}
+    <section class="article-section" aria-labelledby="live-articles">
+      <div class="section-heading">
+        <div>
+          <p class="kicker">Public website</p>
+          <h2 id="live-articles">Live articles</h2>
+        </div>
+        <span>{{ published_posts | length }}</span>
+      </div>
+      <div class="draft-list">
+        {% for post in published_posts %}
+          <article class="draft-card">
+            <a class="draft-card-link" href="https://lensonsecurity.com/posts/{{ post.slug }}/" target="_blank" rel="noopener">
+              <div>
+                <p class="status">Published</p>
+                <h2>{{ post.title or "Untitled article" }}</h2>
+                <p>{{ post.dek or "No description." }}</p>
+              </div>
+              <span aria-hidden="true">↗</span>
+            </a>
+            <form class="draft-delete" method="post" action="{{ url_for('unpublish_post', slug=post.slug) }}" onsubmit="return confirm('Unpublish this article and restore it as a private draft? It will disappear from the public site after GitHub finishes rebuilding.');">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="text-button danger" type="submit">Unpublish</button>
+            </form>
+          </article>
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+
   {% if drafts %}
+    <section class="article-section" aria-labelledby="private-drafts">
+      <div class="section-heading">
+        <div>
+          <p class="kicker">On this Raspberry Pi</p>
+          <h2 id="private-drafts">Private drafts</h2>
+        </div>
+        <span>{{ drafts | length }}</span>
+      </div>
     <div class="draft-list">
       {% for draft in drafts %}
-        <a class="draft-card" href="{{ url_for('edit_draft', draft_id=draft.id) }}">
-          <div>
-            <p class="status">{{ "Published" if draft.published_commit else "Private draft" }}</p>
-            <h2>{{ draft.title or "Untitled article" }}</h2>
-            <p>{{ draft.dek or "No description yet." }}</p>
-          </div>
-          <span aria-hidden="true">→</span>
-        </a>
+        <article class="draft-card">
+          <a class="draft-card-link" href="{{ url_for('edit_draft', draft_id=draft.id) }}">
+            <div>
+              <p class="status">{{ "Published" if draft.published_commit else "Private draft" }}</p>
+              <h2>{{ draft.title or "Untitled article" }}</h2>
+              <p>{{ draft.dek or "No description yet." }}</p>
+            </div>
+            <span aria-hidden="true">→</span>
+          </a>
+          {% if not draft.published_commit %}
+            <form class="draft-delete" method="post" action="{{ url_for('delete_draft', draft_id=draft.id) }}" onsubmit="return confirm('Permanently delete this private draft and its uploaded photographs?');">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="text-button danger" type="submit">Delete draft</button>
+            </form>
+          {% endif %}
+        </article>
       {% endfor %}
     </div>
-  {% else %}
+    </section>
+  {% elif not published_posts %}
     <section class="empty-state">
       <p class="kicker">Ready when you are</p>
       <h2>Create your first private draft</h2>

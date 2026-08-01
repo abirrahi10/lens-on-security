@@ -27,12 +27,20 @@ button, input, textarea { font: inherit; }
 .button { display: inline-flex; justify-content: center; align-items: center; min-height: 44px; padding: 10px 18px; border: 1px solid var(--accent); border-radius: 999px; cursor: pointer; text-decoration: none; font-weight: 750; }
 .button.primary { color: white; background: var(--accent); }
 .button.primary:hover { background: var(--accent-dark); }
+.button.danger { color: var(--danger); border-color: #c98f8f; background: transparent; }
+.button.danger:hover { color: white; border-color: var(--danger); background: var(--danger); }
 .button.secondary { color: var(--accent); background: transparent; }
 .draft-list { display: grid; gap: 12px; padding-bottom: 60px; }
-.draft-card { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 24px; border: 1px solid var(--line); border-radius: 18px; background: var(--panel); text-decoration: none; }
+.article-section { margin-top: 24px; }
+.section-heading { display: flex; align-items: end; justify-content: space-between; gap: 20px; margin-bottom: 16px; }
+.section-heading h2 { margin: 4px 0 0; font-family: Georgia, serif; font-size: 2rem; }
+.section-heading > span { display: grid; place-items: center; min-width: 36px; height: 36px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); background: var(--panel); font-weight: 750; }
+.draft-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; border: 1px solid var(--line); border-radius: 18px; background: var(--panel); overflow: hidden; }
 .draft-card:hover { border-color: var(--accent); transform: translateY(-1px); }
+.draft-card-link { display: flex; align-items: center; justify-content: space-between; gap: 20px; min-width: 0; padding: 24px; text-decoration: none; }
 .draft-card h2 { margin: 6px 0; font-family: Georgia, serif; font-size: 1.55rem; }
 .draft-card p { margin: 0; color: var(--muted); }
+.draft-delete { padding: 24px; border-left: 1px solid var(--line); }
 .empty-state { padding: 64px 32px; border: 1px dashed var(--line); border-radius: 20px; text-align: center; background: var(--panel); }
 .empty-state h2 { font-family: Georgia, serif; font-size: 2rem; }
 .back { display: inline-block; margin-top: 28px; color: var(--accent); font-weight: 700; text-decoration: none; }
@@ -54,6 +62,7 @@ legend { padding: 0 0 12px; }
 .saved-image img { width: 100%; max-height: 190px; object-fit: cover; border-radius: 8px; }
 .saved-image p { color: var(--muted); font-size: .85rem; }
 .text-button { padding: 0; border: 0; color: var(--accent); background: none; cursor: pointer; font-weight: 750; }
+.text-button.danger { color: var(--danger); }
 .error-list, .flash { padding: 16px 18px; margin: 20px 0; border-radius: 12px; }
 .error-list, .flash.error { color: var(--danger); border: 1px solid #dbabab; background: #fff2f1; }
 .error-list h2 { margin-top: 0; font-size: 1rem; }
@@ -68,6 +77,8 @@ legend { padding: 0 0 12px; }
   .page-heading, .editor-heading { align-items: stretch; flex-direction: column; padding-top: 36px; }
   .actions { justify-content: stretch; }
   .actions .button { flex: 1; }
+  .draft-card { grid-template-columns: 1fr; }
+  .draft-delete { padding-top: 0; border-left: 0; }
   .editor-grid { grid-template-columns: 1fr; }
   .metadata-fields { order: -1; }
 }
