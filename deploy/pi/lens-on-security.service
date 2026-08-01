@@ -1,0 +1,25 @@
+[Unit]
+Description=Lens on Security static website
+After=network-online.target mnt-nas.mount
+Wants=network-online.target
+RequiresMountsFor=/mnt/nas
+
+[Service]
+Type=simple
+User=arahi10
+Group=arahi10
+WorkingDirectory=/mnt/nas/websites/lens-on-security
+ExecStart=/usr/bin/python3 -m http.server 8088 --bind 127.0.0.1 --directory current
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target

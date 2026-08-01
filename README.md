@@ -1,6 +1,6 @@
 # Lens on Security
 
-A static Astro learning blog. Posts are currently defined in `src/data/posts.ts`; replace the SVG concept images in `public/images/` with your own web-ready photographs when ready.
+A static Astro learning blog. Each published article is a Markdown file in `src/content/blog/`. Set `draft: true` in a post's frontmatter to keep it out of production builds.
 
 ## Run locally
 
@@ -10,6 +10,8 @@ npm run dev
 ```
 
 Then open the local address Astro prints in the terminal. Build for deployment with `npm run build`; upload the generated `dist/` folder to the Raspberry Pi.
+
+For a custom-domain build at the domain root, set `PUBLIC_SITE_URL` to the HTTPS URL and `PUBLIC_BASE_PATH` to `/`. Raspberry Pi deployment assets and rollback instructions are in `deploy/pi/`.
 
 ## GitHub Pages
 

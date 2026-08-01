@@ -1,0 +1,27 @@
+[Unit]
+Description=Lens on Security private publisher
+After=network-online.target mnt-nas.mount
+Wants=network-online.target
+RequiresMountsFor=/mnt/nas
+
+[Service]
+Type=simple
+User=arahi10
+Group=arahi10
+WorkingDirectory=/mnt/nas/websites/lens-on-security/admin-app/admin
+EnvironmentFile=/etc/lens-publisher/publisher.env
+ExecStart=/mnt/nas/websites/lens-on-security/admin-venv/bin/gunicorn --workers 1 --bind 0.0.0.0:8090 --access-logfile - --error-logfile - app:app
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+ReadWritePaths=/mnt/nas/websites/lens-on-security/drafts /mnt/nas/websites/lens-on-security/repository
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+[Install]
+WantedBy=multi-user.target

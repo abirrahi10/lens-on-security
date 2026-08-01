@@ -1,4 +1,7 @@
 node_modules/
 dist/
 .astro/
+.admin-venv/
+admin-data/
+.astro-dev.*.log
 .npm-cache/

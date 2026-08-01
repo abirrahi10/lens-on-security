@@ -1,28 +1,31 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import { posts } from '../../data/posts';
+import { getCollection, type CollectionEntry } from 'astro:content';
 
-export function getStaticPaths() {
+export async function getStaticPaths() {
+  const posts = await getCollection('blog', ({ data }) => !data.draft);
   return posts.map((post) => ({ params: { slug: post.slug }, props: { post } }));
 }
 
-const { post } = Astro.props;
+const { post } = Astro.props as { post: CollectionEntry<'blog'> };
+const { Content } = await post.render();
+const { title, dek, date, readTime, tags, images, sources } = post.data;
 const base = import.meta.env.BASE_URL.endsWith('/')
   ? import.meta.env.BASE_URL
   : `${import.meta.env.BASE_URL}/`;
 ---
-<BaseLayout title={`${post.title} — Lens on Security`} description={post.dek}>
+<BaseLayout title={`${title} — Lens on Security`} description={dek}>
   <article class="article shell">
     <header class="article-header">
       <a class="back" href={base}>← All notes</a>
-      <p class="kicker">{post.tags.join(' / ')}</p>
-      <h1>{post.title}</h1>
-      <p class="article-dek">{post.dek}</p>
-      <p class="eyebrow">{post.date} <span aria-hidden="true">·</span> {post.readTime}</p>
+      <p class="kicker">{tags.join(' / ')}</p>
+      <h1>{title}</h1>
+      <p class="article-dek">{dek}</p>
+      <p class="eyebrow">{date} <span aria-hidden="true">·</span> {readTime}</p>
     </header>
-    <section class="article-gallery" aria-label={`Image gallery for ${post.title}`}>
+    <section class="article-gallery" aria-label={`Image gallery for ${title}`}>
       <div class="article-gallery-track" data-gallery-track>
-        {post.images.map((image) => (
+        {images.map((image) => (
           <figure>
             <img class="article-image" src={`${base}${image.src.slice(1)}`} alt={image.alt} />
           </figure>
@@ -30,16 +33,16 @@ const base = import.meta.env.BASE_URL.endsWith('/')
       </div>
       <button type="button" class="article-gallery-button previous" data-gallery-direction="previous" aria-label="Previous image">←</button>
       <button type="button" class="article-gallery-button next" data-gallery-direction="next" aria-label="Next image">→</button>
-      <p class="article-gallery-count" aria-live="polite">Image 1 of {post.images.length}</p>
+      <p class="article-gallery-count" aria-live="polite">Image 1 of {images.length}</p>
     </section>
     <div class="article-copy">
-      {post.body.map((paragraph) => <p>{paragraph}</p>)}
+      <Content />
     </div>
-    {post.sources && post.sources.length > 0 && (
+    {sources && sources.length > 0 && (
       <section class="sources" aria-labelledby="sources-title">
         <p class="kicker" id="sources-title">Sources</p>
         <ol>
-          {post.sources.map((url) => (
+          {sources.map((url) => (
             <li>
               <a href={url} target="_blank" rel="noopener noreferrer">{new URL(url).hostname.replace('www.', '')}</a>
             </li>

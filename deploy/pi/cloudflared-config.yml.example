@@ -1,0 +1,7 @@
+tunnel: YOUR_TUNNEL_ID
+credentials-file: /home/PI_USER/.cloudflared/YOUR_TUNNEL_ID.json
+
+ingress:
+  - hostname: YOUR_DOMAIN
+    service: http://127.0.0.1:8088
+  - service: http_status:404

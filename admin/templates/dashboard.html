@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Drafts · Lens Publisher{% endblock %}
+{% block content %}
+  <section class="page-heading">
+    <div>
+      <p class="kicker">Publishing desk</p>
+      <h1>Your articles</h1>
+      <p>Draft privately, preview carefully, and publish deliberately.</p>
+    </div>
+    <a class="button primary" href="{{ url_for('new_draft') }}">New article</a>
+  </section>
+
+  {% if drafts %}
+    <div class="draft-list">
+      {% for draft in drafts %}
+        <a class="draft-card" href="{{ url_for('edit_draft', draft_id=draft.id) }}">
+          <div>
+            <p class="status">{{ "Published" if draft.published_commit else "Private draft" }}</p>
+            <h2>{{ draft.title or "Untitled article" }}</h2>
+            <p>{{ draft.dek or "No description yet." }}</p>
+          </div>
+          <span aria-hidden="true">→</span>
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <section class="empty-state">
+      <p class="kicker">Ready when you are</p>
+      <h2>Create your first private draft</h2>
+      <p>Nothing reaches GitHub until you choose Publish.</p>
+    </section>
+  {% endif %}
+{% endblock %}

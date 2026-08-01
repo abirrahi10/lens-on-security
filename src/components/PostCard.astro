@@ -1,15 +1,17 @@
 ---
-import type { Post } from '../data/posts';
-const { post } = Astro.props as { post: Post };
+import type { CollectionEntry } from 'astro:content';
+
+const { post } = Astro.props as { post: CollectionEntry<'blog'> };
+const { title, dek, date, readTime, tags, images } = post.data;
 const base = import.meta.env.BASE_URL.endsWith('/')
   ? import.meta.env.BASE_URL
   : `${import.meta.env.BASE_URL}/`;
 ---
 <article class="post-card">
-  <div class="card-gallery" aria-label={`Image preview for ${post.title}`}>
+  <div class="card-gallery" aria-label={`Image preview for ${title}`}>
     <div class="gallery-track" data-gallery-track>
-      {post.images.map((image, index) => (
-        <a class="card-image" href={`${base}posts/${post.slug}/`} aria-label={`Read ${post.title}, image ${index + 1} of ${post.images.length}`}>
+      {images.map((image, index) => (
+        <a class="card-image" href={`${base}posts/${post.slug}/`} aria-label={`Read ${title}, image ${index + 1} of ${images.length}`}>
           <img src={`${base}${image.src.slice(1)}`} alt={image.alt} loading="lazy" />
         </a>
       ))}
@@ -20,11 +22,11 @@ const base = import.meta.env.BASE_URL.endsWith('/')
     </div>
   </div>
   <div class="card-body">
-    <p class="eyebrow">{post.date} <span aria-hidden="true">·</span> {post.readTime}</p>
-    <h2><a href={`${base}posts/${post.slug}/`}>{post.title}</a></h2>
-    <p class="dek">{post.dek}</p>
+    <p class="eyebrow">{date} <span aria-hidden="true">·</span> {readTime}</p>
+    <h2><a href={`${base}posts/${post.slug}/`}>{title}</a></h2>
+    <p class="dek">{dek}</p>
     <ul class="tags" aria-label="Topics">
-      {post.tags.map((tag) => <li>{tag}</li>)}
+      {tags.map((tag) => <li>{tag}</li>)}
     </ul>
   </div>
 </article>
