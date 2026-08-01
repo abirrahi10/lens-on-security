@@ -3,6 +3,7 @@ import '../styles/global.css';
 
 interface Props { title?: string; description?: string }
 const { title = 'Lens on Security', description = 'Security concepts, seen through photographs.' } = Astro.props;
+const canonicalUrl = new URL(Astro.url.pathname, Astro.site);
 ---
 <!doctype html>
 <html lang="en">
@@ -10,6 +11,7 @@ const { title = 'Lens on Security', description = 'Security concepts, seen throu
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width" />
     <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalUrl} />
     <title>{title}</title>
   </head>
   <body>
