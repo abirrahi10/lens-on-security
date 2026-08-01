@@ -4,4 +4,6 @@ dist/
 .admin-venv/
 admin-data/
 .astro-dev.*.log
+__pycache__/
+*.pyc
 .npm-cache/
