@@ -33,6 +33,7 @@ ALLOWED_NETWORKS = tuple(
 GIT_BRANCH = os.environ.get("LENS_GIT_BRANCH", "main")
 GIT_REMOTE = os.environ.get("LENS_GIT_REMOTE", "origin")
 GIT_SSH_KEY = os.environ.get("LENS_GIT_SSH_KEY", "")
+GIT_KNOWN_HOSTS = os.environ.get("LENS_GIT_KNOWN_HOSTS", "")
 MAX_IMAGE_BYTES = 20 * 1024 * 1024
 MAX_IMAGE_EDGE = 2400
 MAX_REQUEST_BYTES = 80 * 1024 * 1024
@@ -225,7 +226,15 @@ def render_preview(body: str) -> str:
 def run_git(*args: str) -> str:
     environment = os.environ.copy()
     if GIT_SSH_KEY:
-        environment["GIT_SSH_COMMAND"] = f"ssh -i {GIT_SSH_KEY} -o IdentitiesOnly=yes"
+        ssh_options = [
+            "ssh",
+            "-i", GIT_SSH_KEY,
+            "-o", "IdentitiesOnly=yes",
+            "-o", "StrictHostKeyChecking=yes",
+        ]
+        if GIT_KNOWN_HOSTS:
+            ssh_options.extend(["-o", f"UserKnownHostsFile={GIT_KNOWN_HOSTS}"])
+        environment["GIT_SSH_COMMAND"] = " ".join(ssh_options)
     completed = subprocess.run(
         ["git", "-C", str(REPO_DIR), *args],
         check=True,
