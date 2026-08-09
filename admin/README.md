@@ -4,6 +4,8 @@ Lens Publisher is a VPN-only publishing application for the Lens on Security Ast
 
 The dashboard also includes an About-page editor. It manages the public profile text, certifications, labeled profile links, the “Why this exists” section, résumé card title, headshot, and résumé PDF. New headshots can be dragged and zoomed into the same 4:5 frame used by the public site before publishing.
 
+Article drafts use a rich Markdown editor with formatting controls for headings, emphasis, quotations, lists, links, code, dividers, highlights, and a small set of accessible site colors. The editor offers Write, Split, and Preview modes while preserving portable Markdown in Git.
+
 ## Security model
 
 - The production service is reachable only through the home LAN and WireGuard; no router port is opened.

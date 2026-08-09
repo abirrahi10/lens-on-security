@@ -131,6 +131,55 @@ The published article body.
         response = self.client.post("/admin/new", data={"title": "No token"})
         self.assertEqual(response.status_code, 400)
 
+    def test_new_article_editor_includes_rich_formatting_controls(self):
+        response = self.client.get("/admin/new", environ_base={"REMOTE_ADDR": "10.47.12.20"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b'data-format="heading2"', response.data)
+        self.assertIn(b'data-format="bold"', response.data)
+        self.assertIn(b'data-text-color', response.data)
+        self.assertIn(b'data-rich-preview', response.data)
+        self.assertIn(b'data-editor-view="split"', response.data)
+
+    def test_rich_preview_keeps_safe_formatting_and_removes_unsafe_attributes(self):
+        body = """## Section
+
+**Bold** and *italic*.
+
+<span class="text-accent" style="position:fixed" onclick="alert(1)">Accent</span>
+<span class="unknown-color">Plain</span>
+<mark>Highlight</mark>
+<script>alert('unsafe')</script>
+"""
+
+        rendered = publisher.render_preview(body)
+
+        self.assertIn("<h2>Section</h2>", rendered)
+        self.assertIn("<strong>Bold</strong>", rendered)
+        self.assertIn('<span class="text-accent">Accent</span>', rendered)
+        self.assertIn("<span>Plain</span>", rendered)
+        self.assertIn("<mark>Highlight</mark>", rendered)
+        self.assertNotIn("style=", rendered)
+        self.assertNotIn("onclick=", rendered)
+        self.assertNotIn("<script", rendered)
+
+    def test_live_preview_fragment_requires_csrf_and_renders_markdown(self):
+        denied = self.client.post(
+            "/admin/preview-fragment",
+            data={"body": "**Bold**"},
+            environ_base={"REMOTE_ADDR": "192.168.4.20"},
+        )
+        response = self.client.post(
+            "/admin/preview-fragment",
+            data={"csrf_token": self.csrf(), "body": "## Heading\n\n<mark>Highlighted</mark>"},
+            environ_base={"REMOTE_ADDR": "192.168.4.20"},
+        )
+
+        self.assertEqual(denied.status_code, 400)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"<h2>Heading</h2>", response.data)
+        self.assertIn(b"<mark>Highlighted</mark>", response.data)
+
     def test_about_editor_is_available_from_private_address(self):
         response = self.client.get("/admin/about", environ_base={"REMOTE_ADDR": "10.47.12.20"})
 

@@ -37,11 +37,54 @@
           <span>Short description</span>
           <textarea name="dek" rows="3" required maxlength="300">{{ draft.dek or '' }}</textarea>
         </label>
-        <label>
-          <span>Article text</span>
-          <textarea class="body-editor" name="body" rows="24" required placeholder="Write in Markdown or plain paragraphs…">{{ draft.body or '' }}</textarea>
-          <small>Markdown headings, lists, links, emphasis, and quotations are supported.</small>
-        </label>
+        <div class="editor-field">
+          <span class="field-label">Article text</span>
+          <div class="rich-editor" data-rich-editor data-preview-url="{{ url_for('preview_fragment') }}" data-view="split">
+            <div class="rich-toolbar" role="toolbar" aria-label="Article formatting">
+              <div class="toolbar-group" aria-label="Text structure">
+                <button type="button" data-format="heading2" title="Heading 2">H2</button>
+                <button type="button" data-format="heading3" title="Heading 3">H3</button>
+                <button type="button" data-format="bold" title="Bold (Ctrl+B)"><strong>B</strong></button>
+                <button type="button" data-format="italic" title="Italic (Ctrl+I)"><em>I</em></button>
+                <button type="button" data-format="quote" title="Quotation">“ ”</button>
+              </div>
+              <div class="toolbar-group" aria-label="Lists and links">
+                <button type="button" data-format="unordered-list" title="Bulleted list">• List</button>
+                <button type="button" data-format="ordered-list" title="Numbered list">1. List</button>
+                <button type="button" data-format="link" title="Link (Ctrl+K)">Link</button>
+                <button type="button" data-format="code" title="Inline code">Code</button>
+                <button type="button" data-format="divider" title="Divider">—</button>
+              </div>
+              <div class="toolbar-group color-tools" aria-label="Text color and highlighting">
+                <label class="color-select-label">
+                  <span class="visually-hidden">Text color</span>
+                  <select data-text-color aria-label="Text color">
+                    <option value="">Text color</option>
+                    <option value="text-accent">Olive accent</option>
+                    <option value="text-muted">Muted gray</option>
+                    <option value="text-warm">Warm red</option>
+                  </select>
+                </label>
+                <button type="button" data-format="highlight" title="Highlight selected text">Highlight</button>
+              </div>
+              <div class="editor-view-switcher" aria-label="Editor view">
+                <button type="button" data-editor-view="write" aria-pressed="false">Write</button>
+                <button type="button" data-editor-view="split" aria-pressed="true">Split</button>
+                <button type="button" data-editor-view="preview" aria-pressed="false">Preview</button>
+              </div>
+            </div>
+            <div class="rich-editor-workspace">
+              <div class="write-pane">
+                <label class="visually-hidden" for="article-body">Article text</label>
+                <textarea id="article-body" class="body-editor" name="body" rows="24" required placeholder="Start writing your article…" data-body-editor>{{ draft.body or '' }}</textarea>
+              </div>
+              <section class="rich-preview" aria-label="Formatted article preview" aria-live="polite" data-rich-preview>
+                <p class="preview-placeholder">Your formatted article will appear here.</p>
+              </section>
+            </div>
+          </div>
+          <small>Use the toolbar or Markdown. Colors are limited to the site palette for consistent contrast and design.</small>
+        </div>
         <label>
           <span>Sources</span>
           <textarea name="sources" rows="5" placeholder="One complete URL per line">{{ (draft.sources or []) | join('\n') }}</textarea>

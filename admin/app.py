@@ -463,12 +463,21 @@ def save_uploaded_images(draft: dict) -> list[str]:
     return errors
 
 
+ARTICLE_TEXT_CLASSES = {"text-accent", "text-muted", "text-warm"}
+
+
+def preview_attribute_allowed(tag: str, name: str, value: str) -> bool:
+    if tag == "a" and name in {"href", "title"}:
+        return True
+    return tag == "span" and name == "class" and value in ARTICLE_TEXT_CLASSES
+
+
 def render_preview(body: str) -> str:
     rendered = markdown.markdown(body, extensions=["extra", "sane_lists"])
     return bleach.clean(
         rendered,
-        tags=["p", "h2", "h3", "h4", "strong", "em", "ul", "ol", "li", "blockquote", "code", "pre", "a", "hr"],
-        attributes={"a": ["href", "title"]},
+        tags=["p", "h2", "h3", "h4", "strong", "em", "ul", "ol", "li", "blockquote", "code", "pre", "a", "hr", "span", "mark"],
+        attributes=preview_attribute_allowed,
         protocols=["http", "https", "mailto"],
         strip=True,
     )
@@ -748,6 +757,12 @@ def preview():
         dek=request.form.get("dek", "").strip(),
         body=render_preview(request.form.get("body", "")),
     )
+
+
+@app.post("/admin/preview-fragment")
+def preview_fragment():
+    require_csrf()
+    return render_preview(request.form.get("body", ""))
 
 
 @app.errorhandler(413)
