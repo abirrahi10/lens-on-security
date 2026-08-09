@@ -9,27 +9,20 @@ import SiteHeader from '../components/SiteHeader.astro';
     <main class="resume-page">
       <header class="resume-hero">
         <div>
-          <p class="kicker">Résumé</p>
           <h1>Abir Rahi</h1>
-          <p>Technology operations, software development, technical instruction, and hands-on infrastructure projects.</p>
         </div>
         <div class="page-actions">
-          <a class="page-button" href="/resume/abir-rahi-resume.pdf" target="_blank" rel="noopener">Open PDF</a>
+          <a class="page-button" href="/resume/view/" target="_blank" rel="noopener">Open PDF</a>
           <a class="page-button secondary" href="/resume/abir-rahi-resume.pdf" download>Download PDF</a>
         </div>
       </header>
 
       <section class="resume-viewer" aria-label="Résumé PDF viewer">
-        <object class="resume-embed" data="/resume/abir-rahi-resume.pdf#view=FitH" type="application/pdf">
-          <div class="resume-fallback">
-            <p>Your browser cannot display the PDF here.</p>
-            <a class="page-button" href="/resume/abir-rahi-resume.pdf" target="_blank" rel="noopener">Open résumé</a>
-          </div>
-        </object>
+        <iframe class="resume-embed" src="/resume/abir-rahi-resume.pdf#view=FitH" title="Abir Rahi résumé"></iframe>
         <div class="resume-mobile-fallback">
           <p>Open or download the résumé for the best view on a phone or tablet.</p>
           <div class="page-actions">
-            <a class="page-button" href="/resume/abir-rahi-resume.pdf" target="_blank" rel="noopener">Open PDF</a>
+            <a class="page-button" href="/resume/view/" target="_blank" rel="noopener">Open PDF</a>
             <a class="page-button secondary" href="/resume/abir-rahi-resume.pdf" download>Download PDF</a>
           </div>
         </div>
