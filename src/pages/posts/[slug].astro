@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import SiteHeader from '../../components/SiteHeader.astro';
 import { getCollection, type CollectionEntry } from 'astro:content';
 
 export async function getStaticPaths() {
@@ -15,6 +16,7 @@ const base = import.meta.env.BASE_URL.endsWith('/')
   : `${import.meta.env.BASE_URL}/`;
 ---
 <BaseLayout title={`${title} — Lens on Security`} description={dek}>
+  <div class="shell"><SiteHeader /></div>
   <article class="article shell">
     <header class="article-header">
       <a class="back" href={base}>← All notes</a>

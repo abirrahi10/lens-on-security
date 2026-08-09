@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import PostCard from '../components/PostCard.astro';
+import SiteHeader from '../components/SiteHeader.astro';
 import { getCollection } from 'astro:content';
 
 const posts = (await getCollection('blog', ({ data }) => !data.draft))
@@ -8,10 +9,7 @@ const posts = (await getCollection('blog', ({ data }) => !data.draft))
 ---
 <BaseLayout>
   <section class="shell">
-    <header class="site-header">
-      <a class="wordmark" href={import.meta.env.BASE_URL}>Lens <span>on</span> Security</a>
-      <p>A cybersecurity journey through photographs.</p>
-    </header>
+    <SiteHeader />
 
     <section class="intro" aria-labelledby="page-title">
       <p class="kicker">A visual journal by Abir Rahi</p>

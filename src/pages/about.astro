@@ -1,0 +1,56 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import SiteHeader from '../components/SiteHeader.astro';
+import { existsSync } from 'node:fs';
+
+const portraitFile = new URL('../../public/images/about/abir-rahi.jpg', import.meta.url);
+const resumeFile = new URL('../../public/resume/abir-rahi-resume.pdf', import.meta.url);
+const hasPortrait = existsSync(portraitFile);
+const hasResume = existsSync(resumeFile);
+---
+<BaseLayout title="About Abir Rahi — Lens on Security" description="Meet Abir Rahi and learn why Lens on Security connects cybersecurity concepts with everyday photographs.">
+  <section class="shell">
+    <SiteHeader active="about" />
+
+    <article class="profile-page">
+      <header class="profile-hero">
+        {hasPortrait ? (
+          <img class="portrait-photo" src="/images/about/abir-rahi.jpg" alt="Portrait of Abir Rahi" />
+        ) : (
+          <div class="portrait-placeholder" role="img" aria-label="Portrait of Abir Rahi will be added here">
+            <span>AR</span>
+            <small>Portrait coming soon</small>
+          </div>
+        )}
+        <div class="profile-intro">
+          <p class="kicker">About the author</p>
+          <h1>Abir Rahi</h1>
+          <p class="profile-role">Cybersecurity student · Photographer · Hands-on builder</p>
+          <p class="profile-summary">I am building practical security skills by studying the systems around me, documenting what I learn, and turning technical ideas into explanations people can actually use.</p>
+        </div>
+      </header>
+
+      <div class="profile-content">
+        <section aria-labelledby="why-title">
+          <p class="kicker">Why this exists</p>
+          <h2 id="why-title">Security is easier to understand when you can see it.</h2>
+          <p>I created Lens on Security to connect ordinary photographs with cybersecurity concepts. A building, a road, a lock, or a set of pillars can reveal something about identity, networks, resilience, monitoring, and the decisions that keep systems safe.</p>
+          <p>This site is both a learning journal and a place to practice communicating security clearly. Each article starts with something visible and uses it as a path into the less visible systems that shape our digital lives.</p>
+        </section>
+
+        <aside class="resume-panel" id="resume" aria-labelledby="resume-title">
+          <p class="kicker">Résumé</p>
+          <h2 id="resume-title">Experience beyond the journal.</h2>
+          <p>My résumé will be available here as a downloadable PDF.</p>
+          {hasResume ? (
+            <a class="page-button" href="/resume/abir-rahi-resume.pdf" target="_blank">View résumé</a>
+          ) : (
+            <span class="page-button unavailable" aria-disabled="true">Résumé coming soon</span>
+          )}
+        </aside>
+      </div>
+    </article>
+
+    <footer>© 2026 Lens on Security <span aria-hidden="true">·</span> Built as a learning journal.</footer>
+  </section>
+</BaseLayout>

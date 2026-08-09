@@ -1,0 +1,75 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import SiteHeader from '../components/SiteHeader.astro';
+---
+<BaseLayout title="Architecture — Lens on Security" description="How Lens on Security combines a private Raspberry Pi publishing workflow with Astro, GitHub Actions, and GitHub Pages.">
+  <section class="shell">
+    <SiteHeader active="architecture" />
+
+    <article class="architecture-page">
+      <header class="page-hero">
+        <p class="kicker">Under the surface</p>
+        <h1>Private by design.<br /><em>Public by deployment.</em></h1>
+        <p>Lens on Security separates writing from hosting. Drafts and the publishing controls stay private on my home network, while readers receive a fast static website with no public database or administrator login.</p>
+      </header>
+
+      <section class="architecture-flow" aria-labelledby="flow-title">
+        <h2 id="flow-title" class="visually-hidden">Publishing architecture</h2>
+        <article class="architecture-step">
+          <p class="step-number">01</p>
+          <p class="kicker">Write privately</p>
+          <h3>WireGuard + Raspberry Pi</h3>
+          <p>I reach the private publisher through my VPN. Draft text and original photographs stay on the Pi-connected storage until I choose to publish.</p>
+        </article>
+        <span class="flow-arrow" aria-hidden="true">→</span>
+        <article class="architecture-step">
+          <p class="step-number">02</p>
+          <p class="kicker">Create the source</p>
+          <h3>Markdown + optimized images</h3>
+          <p>The publisher validates the article, converts uploads to web-ready JPEGs, removes EXIF metadata, and creates the Markdown used by the site.</p>
+        </article>
+        <span class="flow-arrow" aria-hidden="true">→</span>
+        <article class="architecture-step">
+          <p class="step-number">03</p>
+          <p class="kicker">Build automatically</p>
+          <h3>GitHub + Astro</h3>
+          <p>A dedicated deploy key pushes the new source to GitHub. GitHub Actions runs the Astro build and produces a static version of every page.</p>
+        </article>
+        <span class="flow-arrow" aria-hidden="true">→</span>
+        <article class="architecture-step">
+          <p class="step-number">04</p>
+          <p class="kicker">Serve publicly</p>
+          <h3>GitHub Pages + HTTPS</h3>
+          <p>GitHub Pages hosts the public files at lensonsecurity.com. Cloudflare provides authoritative DNS while HTTPS protects traffic to the site.</p>
+        </article>
+      </section>
+
+      <section class="architecture-notes" aria-labelledby="decisions-title">
+        <div>
+          <p class="kicker">Security decisions</p>
+          <h2 id="decisions-title">A small public surface.</h2>
+        </div>
+        <div class="decision-grid">
+          <article>
+            <h3>No public admin login</h3>
+            <p>The publisher is available only from approved private networks instead of being exposed to the internet.</p>
+          </article>
+          <article>
+            <h3>No production database</h3>
+            <p>The reader-facing site is static, reducing the number of services that can be attacked or fail.</p>
+          </article>
+          <article>
+            <h3>Deliberate publishing</h3>
+            <p>Publishing is an explicit action protected by request validation, repository checks, and a narrowly scoped GitHub key.</p>
+          </article>
+          <article>
+            <h3>Reversible history</h3>
+            <p>Every publication and unpublication becomes a Git commit, creating a useful record of how the site changed.</p>
+          </article>
+        </div>
+      </section>
+    </article>
+
+    <footer>© 2026 Lens on Security <span aria-hidden="true">·</span> Built as a learning journal.</footer>
+  </section>
+</BaseLayout>
