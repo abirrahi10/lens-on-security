@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block title %}Edit About · Lens Publisher{% endblock %}
+{% block content %}
+  <a class="back" href="{{ url_for('dashboard') }}">← Publishing desk</a>
+
+  {% if errors %}
+    <section class="error-list" role="alert">
+      <h2>Please fix the following</h2>
+      <ul>{% for error in errors %}<li>{{ error }}</li>{% endfor %}</ul>
+    </section>
+  {% endif %}
+
+  <form class="editor" method="post" enctype="multipart/form-data" action="{{ url_for('edit_about') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <section class="editor-heading">
+      <div>
+        <p class="kicker">Public profile</p>
+        <h1>Edit About</h1>
+        <p>Update your profile, headshot, résumé, and the story behind Lens on Security.</p>
+      </div>
+      <div class="actions">
+        <a class="button secondary" href="https://lensonsecurity.com/about/" target="_blank" rel="noopener">View public page</a>
+        <button class="button primary" type="submit">Publish About page</button>
+      </div>
+    </section>
+
+    <div class="about-editor-grid">
+      <section class="panel about-copy-fields">
+        <p class="panel-kicker">Profile text</p>
+        <label>
+          <span>Name</span>
+          <input name="name" value="{{ about.name or '' }}" required maxlength="100">
+        </label>
+        <label>
+          <span>Certifications</span>
+          <textarea name="certifications" rows="4" placeholder="One certification per line">{{ (about.certifications or []) | join('\n') }}</textarea>
+          <small>Certifications appear with dots between them on the public page.</small>
+        </label>
+
+        <fieldset>
+          <legend>Profile links</legend>
+          <div class="profile-link-rows" data-profile-link-rows>
+            {% if about.links %}
+              {% for link in about.links %}
+                <div class="profile-link-row">
+                  <label><span>Display text</span><input name="link_label" value="{{ link.label or '' }}" placeholder="LinkedIn"></label>
+                  <label><span>URL</span><input name="link_url" value="{{ link.url or '' }}" type="url" placeholder="https://linkedin.com/in/…"></label>
+                  <button class="text-button danger" type="button" data-remove-profile-link>Remove link</button>
+                </div>
+              {% endfor %}
+            {% else %}
+              <div class="profile-link-row">
+                <label><span>Display text</span><input name="link_label" placeholder="LinkedIn"></label>
+                <label><span>URL</span><input name="link_url" type="url" placeholder="https://linkedin.com/in/…"></label>
+                <button class="text-button danger" type="button" data-remove-profile-link>Remove link</button>
+              </div>
+            {% endif %}
+          </div>
+          <button class="text-button" type="button" data-add-profile-link>+ Add another link</button>
+          <small>Links appear beneath certifications using the display text you choose.</small>
+        </fieldset>
+
+        <label>
+          <span>Short About description</span>
+          <textarea name="summary" rows="6" required maxlength="1200">{{ about.summary or '' }}</textarea>
+        </label>
+
+        <fieldset>
+          <legend>Why this exists</legend>
+          <label>
+            <span>Section title</span>
+            <input name="why_title" value="{{ about.whyTitle or '' }}" required maxlength="180">
+          </label>
+          <label>
+            <span>Section text</span>
+            <textarea name="why_body" rows="10" required>{{ (about.whyBody or []) | join('\n\n') }}</textarea>
+            <small>Leave a blank line between paragraphs.</small>
+          </label>
+        </fieldset>
+
+        <fieldset>
+          <legend>Résumé card</legend>
+          <label>
+            <span>Card title</span>
+            <input name="resume_title" value="{{ about.resumeTitle or '' }}" required maxlength="180">
+          </label>
+        </fieldset>
+      </section>
+
+      <aside class="about-media-fields">
+        <section class="panel crop-panel">
+          <p class="panel-kicker">Headshot</p>
+          <div class="portrait-cropper" data-portrait-cropper data-current-image="{{ url_for('about_portrait') }}">
+            <canvas width="480" height="600" aria-label="Headshot crop preview"></canvas>
+            <p class="crop-instruction">Drag the photograph to reposition your face.</p>
+          </div>
+          <label>
+            <span>Choose a new headshot</span>
+            <input type="file" name="portrait_file" accept="image/jpeg,image/png,image/webp" data-portrait-file>
+          </label>
+          <label>
+            <span>Zoom</span>
+            <input class="range-input" type="range" min="1" max="3" step="0.01" value="1" data-crop-zoom>
+          </label>
+          <input type="hidden" name="crop_x" value="0.5" data-crop-x>
+          <input type="hidden" name="crop_y" value="0.5" data-crop-y>
+          <input type="hidden" name="crop_zoom" value="1" data-crop-zoom-value>
+          <label>
+            <span>Headshot alternative text</span>
+            <input name="portrait_alt" value="{{ about.portraitAlt or '' }}" required maxlength="180">
+          </label>
+          <small>A new headshot is cropped to the site’s 4:5 frame, resized, and saved without EXIF or GPS metadata.</small>
+        </section>
+
+        <section class="panel resume-upload-panel">
+          <p class="panel-kicker">Résumé PDF</p>
+          <p>The current résumé stays in place unless you choose a replacement.</p>
+          <label>
+            <span>Upload a new résumé</span>
+            <input type="file" name="resume_file" accept="application/pdf,.pdf">
+          </label>
+          <a class="text-link" href="https://lensonsecurity.com/resume/" target="_blank" rel="noopener">View current résumé ↗</a>
+        </section>
+      </aside>
+    </div>
+  </form>
+  <script src="{{ url_for('static', filename='about-editor.js') }}" defer></script>
+{% endblock %}

@@ -1,4 +1,5 @@
 import io
+import json
 import os
 import tempfile
 import unittest
@@ -17,6 +18,9 @@ class PublisherTests(unittest.TestCase):
         self.temporary = tempfile.TemporaryDirectory()
         publisher.DRAFT_DIR = Path(self.temporary.name) / "drafts"
         publisher.REPO_DIR = Path(self.temporary.name) / "repository"
+        publisher.ABOUT_DATA_FILE = publisher.REPO_DIR / "src" / "data" / "about.json"
+        publisher.ABOUT_PORTRAIT_FILE = publisher.REPO_DIR / "public" / "images" / "about" / "abir-rahi.jpg"
+        publisher.ABOUT_RESUME_FILE = publisher.REPO_DIR / "public" / "resume" / "abir-rahi-resume.pdf"
         (publisher.REPO_DIR / "src" / "content" / "blog").mkdir(parents=True)
         (publisher.REPO_DIR / "public" / "images").mkdir(parents=True)
         publisher.app.config.update(TESTING=True, SECRET_KEY="test-secret")
@@ -47,6 +51,29 @@ class PublisherTests(unittest.TestCase):
             "image_file": (image, "photo.png"),
             "image_alt": "A green test image",
             "action": "save",
+        }
+
+    def valid_about_form(self):
+        portrait = io.BytesIO()
+        Image.new("RGB", (1200, 1600), "green").save(portrait, format="PNG")
+        portrait.seek(0)
+        resume = io.BytesIO(b"%PDF-1.4\n1 0 obj\n<<>>\nendobj\n%%EOF\n")
+        return {
+            "csrf_token": self.csrf(),
+            "name": "Abir Rahi",
+            "certifications": "CompTIA A+\nCompTIA Network+",
+            "link_label": ["LinkedIn", "GitHub"],
+            "link_url": ["https://www.linkedin.com/in/abir-rahi", "https://github.com/abirrahi10"],
+            "summary": "A concise updated profile.",
+            "why_title": "A clearer reason for the site.",
+            "why_body": "First paragraph.\n\nSecond paragraph.",
+            "resume_title": "Experience and projects.",
+            "portrait_alt": "Abir Rahi outdoors",
+            "crop_x": "0.45",
+            "crop_y": "0.4",
+            "crop_zoom": "1.4",
+            "portrait_file": (portrait, "portrait.png"),
+            "resume_file": (resume, "resume.pdf"),
         }
 
     def add_published_post(self):
@@ -103,6 +130,108 @@ The published article body.
     def test_write_requires_csrf(self):
         response = self.client.post("/admin/new", data={"title": "No token"})
         self.assertEqual(response.status_code, 400)
+
+    def test_about_editor_is_available_from_private_address(self):
+        response = self.client.get("/admin/about", environ_base={"REMOTE_ADDR": "10.47.12.20"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"Edit About", response.data)
+        self.assertIn(b"Headshot", response.data)
+        self.assertIn(b"Upload a new r", response.data)
+
+    def test_about_editor_publishes_text_portrait_and_resume(self):
+        def git_result(*args):
+            if args == ("diff", "--cached", "--name-only"):
+                return "src/data/about.json\npublic/images/about/abir-rahi.jpg\npublic/resume/abir-rahi-resume.pdf"
+            if args == ("rev-parse", "HEAD"):
+                return "abc123"
+            return ""
+
+        with patch.object(publisher, "run_git", side_effect=git_result) as run_git:
+            response = self.client.post(
+                "/admin/about",
+                data=self.valid_about_form(),
+                content_type="multipart/form-data",
+                environ_base={"REMOTE_ADDR": "192.168.4.20"},
+            )
+
+        self.assertEqual(response.status_code, 302)
+        about = json.loads(publisher.ABOUT_DATA_FILE.read_text(encoding="utf-8"))
+        self.assertEqual(about["certifications"], ["CompTIA A+", "CompTIA Network+"])
+        self.assertEqual(about["links"][0]["label"], "LinkedIn")
+        self.assertEqual(about["links"][1]["url"], "https://github.com/abirrahi10")
+        self.assertEqual(about["whyBody"], ["First paragraph.", "Second paragraph."])
+        self.assertEqual(about["resumeTitle"], "Experience and projects.")
+        with Image.open(publisher.ABOUT_PORTRAIT_FILE) as result:
+            self.assertEqual(result.size, (1200, 1500))
+            self.assertEqual(result.format, "JPEG")
+            self.assertFalse(result.getexif())
+        self.assertTrue(publisher.ABOUT_RESUME_FILE.read_bytes().startswith(b"%PDF-"))
+        self.assertTrue(any(call.args[:1] == ("push",) for call in run_git.call_args_list))
+
+    def test_about_editor_rejects_non_pdf_resume(self):
+        data = self.valid_about_form()
+        data.pop("portrait_file")
+        data["resume_file"] = (io.BytesIO(b"not a pdf"), "resume.pdf")
+
+        with patch.object(publisher, "run_git") as run_git:
+            response = self.client.post(
+                "/admin/about",
+                data=data,
+                content_type="multipart/form-data",
+                environ_base={"REMOTE_ADDR": "192.168.4.20"},
+            )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn(b"valid PDF", response.data)
+        run_git.assert_not_called()
+
+    def test_about_editor_rejects_incomplete_profile_link(self):
+        data = self.valid_about_form()
+        data.pop("portrait_file")
+        data.pop("resume_file")
+        data["link_label"] = ["LinkedIn"]
+        data["link_url"] = [""]
+
+        with patch.object(publisher, "run_git") as run_git:
+            response = self.client.post(
+                "/admin/about",
+                data=data,
+                content_type="multipart/form-data",
+                environ_base={"REMOTE_ADDR": "192.168.4.20"},
+            )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn(b"Complete both fields", response.data)
+        run_git.assert_not_called()
+
+    def test_about_text_update_keeps_existing_portrait_and_resume(self):
+        publisher.ABOUT_PORTRAIT_FILE.parent.mkdir(parents=True)
+        publisher.ABOUT_RESUME_FILE.parent.mkdir(parents=True)
+        publisher.ABOUT_PORTRAIT_FILE.write_bytes(b"existing portrait")
+        publisher.ABOUT_RESUME_FILE.write_bytes(b"existing resume")
+        data = self.valid_about_form()
+        data.pop("portrait_file")
+        data.pop("resume_file")
+
+        def git_result(*args):
+            if args == ("diff", "--cached", "--name-only"):
+                return "src/data/about.json"
+            if args == ("rev-parse", "HEAD"):
+                return "abc123"
+            return ""
+
+        with patch.object(publisher, "run_git", side_effect=git_result):
+            response = self.client.post(
+                "/admin/about",
+                data=data,
+                content_type="multipart/form-data",
+                environ_base={"REMOTE_ADDR": "192.168.4.20"},
+            )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(publisher.ABOUT_PORTRAIT_FILE.read_bytes(), b"existing portrait")
+        self.assertEqual(publisher.ABOUT_RESUME_FILE.read_bytes(), b"existing resume")
 
     def test_draft_and_processed_image_are_saved(self):
         response = self.client.post(

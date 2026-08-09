@@ -10,7 +10,7 @@
   <body>
     <header class="topbar">
       <a class="brand" href="{{ url_for('dashboard') }}">Lens <span>Publisher</span></a>
-      <p>Private · WireGuard only</p>
+      <p>Private · <a href="{{ url_for('edit_about') }}">About</a></p>
     </header>
     <main class="shell">
       {% for category, message in get_flashed_messages(with_categories=true) %}

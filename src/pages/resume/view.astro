@@ -1,17 +1,18 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import SiteHeader from '../../components/SiteHeader.astro';
+import about from '../../data/about.json';
 ---
-<BaseLayout title="Résumé Viewer — Abir Rahi" description="View Abir Rahi’s résumé in your browser.">
+<BaseLayout title={`Résumé Viewer — ${about.name}`} description={`View ${about.name}’s résumé in your browser.`}>
   <section class="shell standalone-resume-page">
     <SiteHeader />
 
     <main>
       <header class="standalone-resume-header">
-        <h1>Abir Rahi</h1>
+        <h1>{about.name}</h1>
         <a class="page-button secondary" href="/resume/abir-rahi-resume.pdf" download>Download PDF</a>
       </header>
-      <iframe class="resume-embed standalone" src="/resume/abir-rahi-resume.pdf#view=FitH" title="Abir Rahi résumé"></iframe>
+      <iframe class="resume-embed standalone" src="/resume/abir-rahi-resume.pdf#view=FitH" title={`${about.name} résumé`}></iframe>
     </main>
   </section>
 </BaseLayout>

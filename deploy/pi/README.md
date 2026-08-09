@@ -19,6 +19,17 @@ Set `SITE_URL` to the final HTTPS domain and run `deploy.sh`. It fast-forwards f
 
 Use `rollback.sh` to switch back to the prior retained release.
 
+## Updating the private publisher
+
+After new publisher code reaches `main`, update the Pi checkout and run the guarded updater:
+
+```bash
+git -C /mnt/nas/websites/lens-on-security/repository pull --ff-only origin main
+bash /mnt/nas/websites/lens-on-security/repository/deploy/pi/update-publisher.sh
+```
+
+The updater copies only the private application code, refreshes its existing virtual environment, and restarts `lens-publisher.service`. Drafts and published content are not removed.
+
 ## Website service
 
 `lens-on-security.service` uses Python's static file server behind Cloudflare Tunnel. It runs without root privileges, can only read the published files, starts after the NAS mount is available, and restarts automatically after a failure or reboot.

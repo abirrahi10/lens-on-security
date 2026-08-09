@@ -2,46 +2,57 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import SiteHeader from '../components/SiteHeader.astro';
 import { existsSync } from 'node:fs';
+import about from '../data/about.json';
 
 const portraitFile = new URL('../../public/images/about/abir-rahi.jpg', import.meta.url);
 const resumeFile = new URL('../../public/resume/abir-rahi-resume.pdf', import.meta.url);
 const hasPortrait = existsSync(portraitFile);
 const hasResume = existsSync(resumeFile);
-const certifications = ['CompTIA A+'];
+const initials = about.name.split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase();
 ---
-<BaseLayout title="About Abir Rahi — Lens on Security" description="Meet Abir Rahi and learn why Lens on Security connects cybersecurity concepts with everyday photographs.">
+<BaseLayout title={`About ${about.name} — Lens on Security`} description={`Meet ${about.name} and learn why Lens on Security connects cybersecurity concepts with everyday photographs.`}>
   <section class="shell">
     <SiteHeader active="about" />
 
     <article class="profile-page">
       <header class="profile-hero">
         {hasPortrait ? (
-          <img class="portrait-photo" src="/images/about/abir-rahi.jpg" alt="Portrait of Abir Rahi" />
+          <img class="portrait-photo" src="/images/about/abir-rahi.jpg" alt={about.portraitAlt} />
         ) : (
-          <div class="portrait-placeholder" role="img" aria-label="Portrait of Abir Rahi will be added here">
-            <span>AR</span>
+          <div class="portrait-placeholder" role="img" aria-label={`Portrait of ${about.name} will be added here`}>
+            <span>{initials}</span>
             <small>Portrait coming soon</small>
           </div>
         )}
         <div class="profile-intro">
           <p class="kicker">About the author</p>
-          <h1>Abir Rahi</h1>
-          <p class="profile-role">Certifications: {certifications.join(' · ')}</p>
-          <p class="profile-summary">I am a computer science graduate with experience in technology operations, software development, technical instruction, and hands-on infrastructure projects. I use Lens on Security to keep building practical security skills and explain what I learn clearly.</p>
+          <h1>{about.name}</h1>
+          {about.certifications.length > 0 && <p class="profile-role">Certifications: {about.certifications.join(' · ')}</p>}
+          {about.links.length > 0 && (
+            <nav class="profile-links" aria-label={`${about.name}’s links`}>
+              <span>Links:</span>
+              {about.links.map((link, index) => (
+                <>
+                  {index > 0 && <span aria-hidden="true">·</span>}
+                  <a href={link.url} target="_blank" rel="noopener noreferrer">{link.label}</a>
+                </>
+              ))}
+            </nav>
+          )}
+          <p class="profile-summary">{about.summary}</p>
         </div>
       </header>
 
       <div class="profile-content">
         <section aria-labelledby="why-title">
           <p class="kicker">Why this exists</p>
-          <h2 id="why-title">Security is easier to understand when you can see it.</h2>
-          <p>I created Lens on Security to connect ordinary photographs with cybersecurity concepts. A building, a road, a lock, or a set of pillars can reveal something about identity, networks, resilience, monitoring, and the decisions that keep systems safe.</p>
-          <p>This site is both a learning journal and a place to practice communicating security clearly. Each article starts with something visible and uses it as a path into the less visible systems that shape our digital lives.</p>
+          <h2 id="why-title">{about.whyTitle}</h2>
+          {about.whyBody.map((paragraph) => <p>{paragraph}</p>)}
         </section>
 
         <aside class="resume-panel" id="resume" aria-labelledby="resume-title">
           <p class="kicker">Résumé</p>
-          <h2 id="resume-title">Experience beyond the journal.</h2>
+          <h2 id="resume-title">{about.resumeTitle}</h2>
           {hasResume ? (
             <div class="page-actions">
               <a class="page-button" href="/resume/">View résumé</a>

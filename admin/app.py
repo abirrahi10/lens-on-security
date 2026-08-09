@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hmac
 import ipaddress
+import io
 import json
 import os
 import re
@@ -36,12 +37,26 @@ GIT_REMOTE = os.environ.get("LENS_GIT_REMOTE", "origin")
 GIT_SSH_KEY = os.environ.get("LENS_GIT_SSH_KEY", "")
 GIT_KNOWN_HOSTS = os.environ.get("LENS_GIT_KNOWN_HOSTS", "")
 MAX_IMAGE_BYTES = 20 * 1024 * 1024
+MAX_RESUME_BYTES = 10 * 1024 * 1024
 MAX_IMAGE_EDGE = 2400
 MAX_REQUEST_BYTES = 80 * 1024 * 1024
 SLUG_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 DRAFT_ID_RE = re.compile(r"^[a-f0-9]{32}$")
 PUBLISH_LOCK = threading.Lock()
 FRONTMATTER_RE = re.compile(r"\A---\r?\n(.*?)\r?\n---\r?\n?(.*)\Z", re.DOTALL)
+ABOUT_DATA_FILE = REPO_DIR / "src" / "data" / "about.json"
+ABOUT_PORTRAIT_FILE = REPO_DIR / "public" / "images" / "about" / "abir-rahi.jpg"
+ABOUT_RESUME_FILE = REPO_DIR / "public" / "resume" / "abir-rahi-resume.pdf"
+DEFAULT_ABOUT = {
+    "name": "Abir Rahi",
+    "certifications": ["CompTIA A+"],
+    "links": [],
+    "summary": "",
+    "whyTitle": "",
+    "whyBody": [],
+    "resumeTitle": "Experience beyond the journal.",
+    "portraitAlt": "Portrait of Abir Rahi",
+}
 
 app = Flask(__name__)
 app.config.update(
@@ -110,6 +125,148 @@ def save_draft_file(draft: dict) -> None:
     temporary = path / "draft.json.tmp"
     temporary.write_text(json.dumps(draft, ensure_ascii=False, indent=2), encoding="utf-8")
     temporary.replace(path / "draft.json")
+
+
+def load_about() -> dict:
+    about = json.loads(json.dumps(DEFAULT_ABOUT))
+    if ABOUT_DATA_FILE.is_file():
+        loaded = json.loads(ABOUT_DATA_FILE.read_text(encoding="utf-8"))
+        if isinstance(loaded, dict):
+            about.update(loaded)
+    about["certifications"] = [str(value) for value in about.get("certifications", [])]
+    about["links"] = [
+        {"label": str(value.get("label", "")), "url": str(value.get("url", ""))}
+        for value in about.get("links", [])
+        if isinstance(value, dict)
+    ]
+    about["whyBody"] = [str(value) for value in about.get("whyBody", [])]
+    return about
+
+
+def about_form_values() -> tuple[dict, list[str]]:
+    certifications = [
+        value.strip()
+        for value in re.split(r"[,\r\n]+", request.form.get("certifications", ""))
+        if value.strip()
+    ]
+    why_body = [
+        paragraph.strip()
+        for paragraph in re.split(r"\r?\n\s*\r?\n", request.form.get("why_body", "").strip())
+        if paragraph.strip()
+    ]
+    link_labels = request.form.getlist("link_label")
+    link_urls = request.form.getlist("link_url")
+    links = []
+    link_errors = []
+    for index in range(max(len(link_labels), len(link_urls))):
+        label = link_labels[index].strip() if index < len(link_labels) else ""
+        url = link_urls[index].strip() if index < len(link_urls) else ""
+        if not label and not url:
+            continue
+        links.append({"label": label, "url": url})
+        if not label or not url:
+            link_errors.append(f"Complete both fields for profile link {index + 1}.")
+            continue
+        if not validate_url(url):
+            link_errors.append(f"Profile link {index + 1} must be a complete http:// or https:// URL.")
+            continue
+    values = {
+        "name": request.form.get("name", "").strip(),
+        "certifications": certifications,
+        "links": links,
+        "summary": request.form.get("summary", "").strip(),
+        "whyTitle": request.form.get("why_title", "").strip(),
+        "whyBody": why_body,
+        "resumeTitle": request.form.get("resume_title", "").strip(),
+        "portraitAlt": request.form.get("portrait_alt", "").strip(),
+    }
+    errors = link_errors
+    if not values["name"]:
+        errors.append("Add your name.")
+    if not values["summary"]:
+        errors.append("Add the short About-page description.")
+    if not values["whyTitle"]:
+        errors.append("Add a title for the Why this exists section.")
+    if not values["whyBody"]:
+        errors.append("Add text for the Why this exists section.")
+    if not values["resumeTitle"]:
+        errors.append("Add the résumé card title.")
+    if not values["portraitAlt"]:
+        errors.append("Add alternative text for the headshot.")
+    return values, errors
+
+
+def form_float(name: str, default: float, minimum: float, maximum: float) -> float:
+    try:
+        value = float(request.form.get(name, default))
+    except (TypeError, ValueError):
+        return default
+    return max(minimum, min(maximum, value))
+
+
+def uploaded_size(upload) -> int:
+    upload.stream.seek(0, os.SEEK_END)
+    size = upload.stream.tell()
+    upload.stream.seek(0)
+    return size
+
+
+def process_about_portrait(upload, focal_x: float, focal_y: float, zoom: float) -> bytes:
+    if uploaded_size(upload) > MAX_IMAGE_BYTES:
+        raise ValueError(f"{upload.filename} exceeds the 20 MB image limit.")
+    try:
+        with Image.open(upload.stream) as source:
+            image = ImageOps.exif_transpose(source)
+            if image.width < 320 or image.height < 400:
+                raise ValueError("Choose a headshot that is at least 320 × 400 pixels.")
+            if image.mode != "RGB":
+                converted = Image.new("RGB", image.size, "white")
+                if "A" in image.getbands():
+                    converted.paste(image, mask=image.getchannel("A"))
+                else:
+                    converted.paste(image)
+                image = converted
+
+            target_ratio = 4 / 5
+            if image.width / image.height > target_ratio:
+                base_height = float(image.height)
+                base_width = base_height * target_ratio
+            else:
+                base_width = float(image.width)
+                base_height = base_width / target_ratio
+            crop_width = base_width / zoom
+            crop_height = base_height / zoom
+            center_x = max(crop_width / 2, min(image.width - crop_width / 2, focal_x * image.width))
+            center_y = max(crop_height / 2, min(image.height - crop_height / 2, focal_y * image.height))
+            box = (
+                round(center_x - crop_width / 2),
+                round(center_y - crop_height / 2),
+                round(center_x + crop_width / 2),
+                round(center_y + crop_height / 2),
+            )
+            cropped = image.crop(box).resize((1200, 1500), Image.Resampling.LANCZOS)
+            output = io.BytesIO()
+            cropped.save(output, format="JPEG", quality=90, optimize=True)
+            return output.getvalue()
+    except (UnidentifiedImageError, OSError, Image.DecompressionBombError) as error:
+        raise ValueError(f"{upload.filename} is not a supported photograph.") from error
+
+
+def validate_resume_upload(upload) -> bytes:
+    if uploaded_size(upload) > MAX_RESUME_BYTES:
+        raise ValueError(f"{upload.filename} exceeds the 10 MB résumé limit.")
+    data = upload.stream.read(MAX_RESUME_BYTES + 1)
+    upload.stream.seek(0)
+    if not data.startswith(b"%PDF-") or b"%%EOF" not in data[-4096:]:
+        raise ValueError("The résumé must be a valid PDF file.")
+    return data
+
+
+def write_atomic(path: Path, content: bytes) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(f".{path.name}.{uuid.uuid4().hex}.tmp")
+    temporary.write_bytes(content)
+    temporary.replace(path)
 
 
 def list_drafts() -> list[dict]:
@@ -383,6 +540,30 @@ def publish_draft(draft: dict) -> str:
         return run_git("rev-parse", "HEAD")
 
 
+def publish_about(about: dict, portrait: bytes | None, resume: bytes | None) -> str:
+    with PUBLISH_LOCK:
+        if run_git("status", "--porcelain"):
+            raise RuntimeError("The publishing repository has uncommitted changes and needs attention.")
+        run_git("pull", "--ff-only", GIT_REMOTE, GIT_BRANCH)
+
+        about_json = (json.dumps(about, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
+        write_atomic(ABOUT_DATA_FILE, about_json)
+        targets = [str(ABOUT_DATA_FILE.relative_to(REPO_DIR))]
+        if portrait is not None:
+            write_atomic(ABOUT_PORTRAIT_FILE, portrait)
+            targets.append(str(ABOUT_PORTRAIT_FILE.relative_to(REPO_DIR)))
+        if resume is not None:
+            write_atomic(ABOUT_RESUME_FILE, resume)
+            targets.append(str(ABOUT_RESUME_FILE.relative_to(REPO_DIR)))
+
+        run_git("add", "--", *targets)
+        if not run_git("diff", "--cached", "--name-only"):
+            raise ValueError("There are no About-page changes to publish.")
+        run_git("commit", "-m", "Update About page")
+        run_git("push", GIT_REMOTE, GIT_BRANCH)
+        return run_git("rev-parse", "HEAD")
+
+
 @app.get("/")
 def root():
     return redirect(url_for("dashboard"))
@@ -392,6 +573,53 @@ def root():
 def dashboard():
     drafts = [draft for draft in list_drafts() if not draft.get("published_commit")]
     return render_template("dashboard.html", drafts=drafts, published_posts=list_published_posts())
+
+
+@app.route("/admin/about", methods=["GET", "POST"])
+def edit_about():
+    if request.method == "GET":
+        return render_template("about-editor.html", about=load_about(), errors=[])
+
+    require_csrf()
+    about, errors = about_form_values()
+    portrait = None
+    resume = None
+    portrait_upload = request.files.get("portrait_file")
+    resume_upload = request.files.get("resume_file")
+
+    if portrait_upload and portrait_upload.filename:
+        try:
+            portrait = process_about_portrait(
+                portrait_upload,
+                form_float("crop_x", 0.5, 0, 1),
+                form_float("crop_y", 0.5, 0, 1),
+                form_float("crop_zoom", 1, 1, 3),
+            )
+        except ValueError as error:
+            errors.append(str(error))
+    if resume_upload and resume_upload.filename:
+        try:
+            resume = validate_resume_upload(resume_upload)
+        except ValueError as error:
+            errors.append(str(error))
+
+    if errors:
+        return render_template("about-editor.html", about=about, errors=errors), 400
+    try:
+        publish_about(about, portrait, resume)
+        flash("About page published to GitHub. The public site is rebuilding now.", "success")
+        return redirect(url_for("edit_about"))
+    except (subprocess.SubprocessError, OSError, RuntimeError, ValueError, json.JSONDecodeError) as error:
+        app.logger.exception("About-page publishing failed")
+        flash(str(error), "error")
+        return render_template("about-editor.html", about=about, errors=[]), 500
+
+
+@app.get("/admin/about/portrait")
+def about_portrait():
+    if not ABOUT_PORTRAIT_FILE.is_file():
+        abort(404)
+    return send_from_directory(ABOUT_PORTRAIT_FILE.parent, ABOUT_PORTRAIT_FILE.name, max_age=0)
 
 
 @app.get("/admin/drafts/<draft_id>/images/<filename>")
