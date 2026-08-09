@@ -25,8 +25,8 @@ const hasResume = existsSync(resumeFile);
         <div class="profile-intro">
           <p class="kicker">About the author</p>
           <h1>Abir Rahi</h1>
-          <p class="profile-role">Cybersecurity student · Photographer · Hands-on builder</p>
-          <p class="profile-summary">I am building practical security skills by studying the systems around me, documenting what I learn, and turning technical ideas into explanations people can actually use.</p>
+          <p class="profile-role">Computer science graduate · CompTIA A+ · Hands-on builder</p>
+          <p class="profile-summary">I am a computer science graduate with experience in technology operations, software development, technical instruction, and hands-on infrastructure projects. I use Lens on Security to keep building practical security skills and explain what I learn clearly.</p>
         </div>
       </header>
 
@@ -41,9 +41,12 @@ const hasResume = existsSync(resumeFile);
         <aside class="resume-panel" id="resume" aria-labelledby="resume-title">
           <p class="kicker">Résumé</p>
           <h2 id="resume-title">Experience beyond the journal.</h2>
-          <p>My résumé will be available here as a downloadable PDF.</p>
+          <p>My experience spans technology operations, software development, technical instruction, and self-directed infrastructure projects.</p>
           {hasResume ? (
-            <a class="page-button" href="/resume/abir-rahi-resume.pdf" target="_blank">View résumé</a>
+            <div class="page-actions">
+              <a class="page-button" href="/resume/">View résumé</a>
+              <a class="page-button secondary" href="/resume/abir-rahi-resume.pdf" download>Download PDF</a>
+            </div>
           ) : (
             <span class="page-button unavailable" aria-disabled="true">Résumé coming soon</span>
           )}
@@ -51,6 +54,6 @@ const hasResume = existsSync(resumeFile);
       </div>
     </article>
 
-    <footer>© 2026 Lens on Security <span aria-hidden="true">·</span> Built as a learning journal.</footer>
+    <footer>© 2026 Lens on Security</footer>
   </section>
 </BaseLayout>
