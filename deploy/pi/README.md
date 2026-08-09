@@ -29,6 +29,7 @@ bash /mnt/nas/websites/lens-on-security/repository/deploy/pi/update-publisher.sh
 ```
 
 The updater copies only the private application code, refreshes its existing virtual environment, and restarts `lens-publisher.service`. Drafts and published content are not removed.
+The repository fetches public updates over HTTPS and retains the dedicated SSH deploy key only for publisher pushes.
 
 ## Website service
 

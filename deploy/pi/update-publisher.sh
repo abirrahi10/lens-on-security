@@ -15,6 +15,8 @@ if [[ ! -x "$VENV_DIR/bin/python" ]]; then
   exit 1
 fi
 
+git -C "$REPO_DIR" remote set-url origin https://github.com/abirrahi10/lens-on-security.git
+git -C "$REPO_DIR" remote set-url --push origin git@github.com:abirrahi10/lens-on-security.git
 git -C "$REPO_DIR" pull --ff-only origin main
 mkdir -p "$APP_DIR/admin" "$APP_DIR/deploy/pi"
 cp -a "$REPO_DIR/admin/." "$APP_DIR/admin/"

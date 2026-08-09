@@ -23,6 +23,8 @@ python3 -m venv "$VENV_DIR"
 if [[ ! -d "$REPO_DIR/.git" ]]; then
   git clone https://github.com/abirrahi10/lens-on-security.git "$REPO_DIR"
 fi
+git -C "$REPO_DIR" remote set-url origin https://github.com/abirrahi10/lens-on-security.git
+git -C "$REPO_DIR" remote set-url --push origin git@github.com:abirrahi10/lens-on-security.git
 git -C "$REPO_DIR" config user.name "Lens Publisher"
 git -C "$REPO_DIR" config user.email "publisher@lensonsecurity.local"
 
