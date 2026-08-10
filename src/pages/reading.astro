@@ -13,7 +13,7 @@ const articles = results
   .slice(0, 60);
 const categories = ['Cybersecurity', 'Photography', 'Technology', 'Other'];
 const refreshed = new Intl.DateTimeFormat('en-US', {
-  month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'UTC', timeZoneName: 'short',
+  month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York', timeZoneName: 'short',
 }).format(new Date());
 ---
 <BaseLayout title="Reading — Lens on Security" description="A curated reader of the cybersecurity, technology, and photography feeds followed by Abir Rahi.">
