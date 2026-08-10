@@ -13,6 +13,27 @@
       "siteUrl": "https://lensonsecurity.com/",
       "category": "Cybersecurity",
       "visible": true
+    },
+    {
+      "title": "The Hackers News",
+      "feedUrl": "https://feeds.feedburner.com/TheHackersNews?format=xml",
+      "siteUrl": "https://thehackernews.com/",
+      "category": "Cybersecurity",
+      "visible": true
+    },
+    {
+      "title": "Bleeping Computer",
+      "feedUrl": "https://www.bleepingcomputer.com/feed/",
+      "siteUrl": "https://www.bleepingcomputer.com/",
+      "category": "Cybersecurity",
+      "visible": true
+    },
+    {
+      "title": "CISA",
+      "feedUrl": "https://www.cisa.gov/cybersecurity-advisories/ics-advisories.xml",
+      "siteUrl": "https://www.cisa.gov/",
+      "category": "Cybersecurity",
+      "visible": true
     }
   ]
 }
