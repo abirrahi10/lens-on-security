@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import ArticleShare from '../../components/ArticleShare.astro';
 import SiteFooter from '../../components/SiteFooter.astro';
 import SiteHeader from '../../components/SiteHeader.astro';
 import { getCollection, type CollectionEntry } from 'astro:content';
@@ -15,8 +16,10 @@ const { title, dek, date, readTime, tags, images, sources } = post.data;
 const base = import.meta.env.BASE_URL.endsWith('/')
   ? import.meta.env.BASE_URL
   : `${import.meta.env.BASE_URL}/`;
+const shareUrl = new URL(Astro.url.pathname, Astro.site).toString();
+const shareImage = images[0]?.src;
 ---
-<BaseLayout title={`${title} — Lens on Security`} description={dek}>
+<BaseLayout title={`${title} — Lens on Security`} description={dek} image={shareImage} type="article">
   <div class="shell"><SiteHeader /></div>
   <article class="article shell">
     <header class="article-header">
@@ -53,6 +56,7 @@ const base = import.meta.env.BASE_URL.endsWith('/')
         </ol>
       </section>
     )}
+    <ArticleShare title={title} description={dek} url={shareUrl} />
   </article>
   <div class="shell"><SiteFooter /></div>
 </BaseLayout>

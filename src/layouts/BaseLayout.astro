@@ -1,10 +1,21 @@
 ---
 import '../styles/global.css';
 
-interface Props { title?: string; description?: string }
-const { title = 'Lens on Security', description = 'Security concepts, seen through photographs.' } = Astro.props;
+interface Props {
+  title?: string;
+  description?: string;
+  image?: string;
+  type?: 'website' | 'article';
+}
+const {
+  title = 'Lens on Security',
+  description = 'Security concepts, seen through photographs.',
+  image,
+  type = 'website',
+} = Astro.props;
 const canonicalUrl = new URL(Astro.url.pathname, Astro.site);
 const rssUrl = new URL('rss.xml', Astro.site);
+const socialImageUrl = image ? new URL(image.replace(/^\//, ''), Astro.site) : undefined;
 ---
 <!doctype html>
 <html lang="en">
@@ -20,6 +31,16 @@ const rssUrl = new URL('rss.xml', Astro.site);
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
+    <meta property="og:site_name" content="Lens on Security" />
+    <meta property="og:type" content={type} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalUrl} />
+    {socialImageUrl && <meta property="og:image" content={socialImageUrl} />}
+    <meta name="twitter:card" content={socialImageUrl ? 'summary_large_image' : 'summary'} />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    {socialImageUrl && <meta name="twitter:image" content={socialImageUrl} />}
     <title>{title}</title>
   </head>
   <body>

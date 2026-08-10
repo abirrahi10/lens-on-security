@@ -1,0 +1,92 @@
+---
+interface Props {
+  title: string;
+  description: string;
+  url: string;
+}
+
+const { title, description, url } = Astro.props;
+---
+
+<section
+  id="share"
+  class="article-share"
+  aria-labelledby="share-title"
+  data-article-share
+  data-share-title={title}
+  data-share-description={description}
+  data-share-url={url}
+>
+  <div>
+    <h2 id="share-title">Share this article.</h2>
+  </div>
+  <div class="article-share-controls">
+    <div class="page-actions">
+      <button class="page-button" type="button" data-share-button>Share</button>
+      <button class="page-button secondary" type="button" data-copy-button>Copy link</button>
+    </div>
+    <p class="share-status" aria-live="polite" data-share-status></p>
+  </div>
+</section>
+
+<script>
+  const copyText = async (text: string) => {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return;
+    }
+
+    const field = document.createElement('textarea');
+    field.value = text;
+    field.setAttribute('readonly', '');
+    field.style.position = 'fixed';
+    field.style.opacity = '0';
+    document.body.appendChild(field);
+    field.select();
+    document.execCommand('copy');
+    field.remove();
+  };
+
+  document.querySelectorAll<HTMLElement>('[data-article-share]').forEach((share) => {
+    const title = share.dataset.shareTitle ?? document.title;
+    const text = share.dataset.shareDescription ?? '';
+    const url = share.dataset.shareUrl ?? window.location.href;
+    const status = share.querySelector<HTMLElement>('[data-share-status]');
+
+    const showStatus = (message: string) => {
+      if (!status) return;
+      status.textContent = message;
+      window.setTimeout(() => {
+        status.textContent = '';
+      }, 3000);
+    };
+
+    share.querySelector<HTMLButtonElement>('[data-copy-button]')?.addEventListener('click', async () => {
+      try {
+        await copyText(url);
+        showStatus('Link copied');
+      } catch {
+        showStatus('Unable to copy — select the address from your browser');
+      }
+    });
+
+    share.querySelector<HTMLButtonElement>('[data-share-button]')?.addEventListener('click', async () => {
+      if (navigator.share) {
+        try {
+          await navigator.share({ title, text, url });
+        } catch (error) {
+          if (error instanceof DOMException && error.name === 'AbortError') return;
+          showStatus('Unable to open sharing');
+        }
+        return;
+      }
+
+      try {
+        await copyText(url);
+        showStatus('Sharing is unavailable here — link copied instead');
+      } catch {
+        showStatus('Sharing is unavailable in this browser');
+      }
+    });
+  });
+</script>
