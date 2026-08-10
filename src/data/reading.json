@@ -6,20 +6,6 @@
       "siteUrl": "https://krebsonsecurity.com/",
       "category": "Cybersecurity",
       "visible": true
-    },
-    {
-      "title": "Cloudflare Blog",
-      "feedUrl": "https://blog.cloudflare.com/rss/",
-      "siteUrl": "https://blog.cloudflare.com/",
-      "category": "Technology",
-      "visible": true
-    },
-    {
-      "title": "PetaPixel",
-      "feedUrl": "https://petapixel.com/feed/",
-      "siteUrl": "https://petapixel.com/",
-      "category": "Photography",
-      "visible": true
     }
   ]
 }
