@@ -6,6 +6,13 @@
       "siteUrl": "https://krebsonsecurity.com/",
       "category": "Cybersecurity",
       "visible": true
+    },
+    {
+      "title": "Lens on Security",
+      "feedUrl": "https://lensonsecurity.com/rss.xml",
+      "siteUrl": "https://lensonsecurity.com/",
+      "category": "Cybersecurity",
+      "visible": true
     }
   ]
 }
