@@ -6,6 +6,8 @@ The dashboard also includes an About-page editor. It manages the public profile 
 
 Article drafts use a rich Markdown editor with formatting controls for headings, emphasis, quotations, lists, links, code, dividers, highlights, and a small set of accessible site colors. The editor offers Write, Split, and Preview modes while preserving portable Markdown in Git.
 
+The Reading editor manages public RSS and Atom subscriptions, categories, visibility, and source links. Publishing the list updates `src/data/reading.json`; GitHub Pages rebuilds immediately and then refreshes the external feeds every six hours.
+
 ## Security model
 
 - The production service is reachable only through the home LAN and WireGuard; no router port is opened.

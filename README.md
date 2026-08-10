@@ -13,9 +13,13 @@ Then open the local address Astro prints in the terminal. Build for deployment w
 
 The production build defaults to `https://lensonsecurity.com/`. `PUBLIC_SITE_URL` and `PUBLIC_BASE_PATH` can override that configuration when testing another deployment target. Raspberry Pi deployment assets and rollback instructions are in `deploy/pi/`.
 
+The site also generates `/rss.xml`, `/sitemap.xml`, `/robots.txt`, and a human-readable `/sitemap/` from the published content collection. The public `/reading/` page displays sanitized content supplied by the RSS and Atom subscriptions in `src/data/reading.json`.
+
 ## GitHub Pages
 
 This project publishes to `https://lensonsecurity.com/` through GitHub Pages. In the GitHub repository, choose **Settings > Pages > GitHub Actions** as the publishing source and set the custom domain to `lensonsecurity.com`. Every push to `main` will rebuild and deploy the site.
+
+The deployment workflow also rebuilds every six hours so the public Reading page can refresh subscribed feeds without storing external articles in Git.
 
 ## Sources
 

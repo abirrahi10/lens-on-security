@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Edit Reading · Lens Publisher{% endblock %}
+{% block content %}
+  <a class="back" href="{{ url_for('dashboard') }}">← Publishing desk</a>
+
+  {% if errors %}
+    <section class="error-list" role="alert">
+      <h2>Please fix the following</h2>
+      <ul>{% for error in errors %}<li>{{ error }}</li>{% endfor %}</ul>
+    </section>
+  {% endif %}
+
+  <form class="editor" method="post" action="{{ url_for('edit_reading') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <section class="editor-heading">
+      <div>
+        <p class="kicker">Public reading desk</p>
+        <h1>Edit Reading</h1>
+        <p>Add RSS or Atom subscriptions, organize them by category, and choose which ones appear publicly.</p>
+      </div>
+      <div class="actions">
+        <a class="button secondary" href="https://lensonsecurity.com/reading/" target="_blank" rel="noopener">View Reading page</a>
+        <button class="button primary" type="submit">Publish Reading list</button>
+      </div>
+    </section>
+
+    <section class="panel feed-editor-panel">
+      <div class="section-heading feed-editor-heading">
+        <div>
+          <p class="panel-kicker">Subscriptions</p>
+          <p>Visible feeds are refreshed every six hours. Hidden feeds stay saved here without appearing publicly.</p>
+        </div>
+        <button class="text-button" type="button" data-add-feed>+ Add feed</button>
+      </div>
+
+      <div class="feed-rows" data-feed-rows>
+        {% set feeds = reading.feeds if reading.feeds else [{}] %}
+        {% for feed in feeds %}
+          <fieldset class="feed-row">
+            <legend>Feed {{ loop.index }}</legend>
+            <div class="feed-row-grid">
+              <label>
+                <span>Display name</span>
+                <input name="feed_title" value="{{ feed.title or '' }}" placeholder="Krebs on Security">
+              </label>
+              <label>
+                <span>Category</span>
+                <select name="feed_category">
+                  <option value="" {% if not feed.category %}selected{% endif %}>Choose a category</option>
+                  {% for category in categories %}
+                    <option value="{{ category }}" {% if feed.category == category %}selected{% endif %}>{{ category }}</option>
+                  {% endfor %}
+                </select>
+              </label>
+              <label class="wide-field">
+                <span>RSS or Atom URL</span>
+                <input name="feed_url" value="{{ feed.feedUrl or '' }}" type="url" placeholder="https://example.com/feed.xml">
+              </label>
+              <label class="wide-field">
+                <span>Website URL</span>
+                <input name="feed_site_url" value="{{ feed.siteUrl or '' }}" type="url" placeholder="https://example.com/">
+              </label>
+              <label>
+                <span>Public status</span>
+                <select name="feed_status">
+                  <option value="public" {% if feed.visible is not sameas false %}selected{% endif %}>Visible</option>
+                  <option value="hidden" {% if feed.visible is sameas false %}selected{% endif %}>Hidden</option>
+                </select>
+              </label>
+              <button class="text-button danger remove-feed" type="button" data-remove-feed>Remove feed</button>
+            </div>
+          </fieldset>
+        {% endfor %}
+      </div>
+      <small>The reader uses only content supplied by each feed. Feeds that provide summaries instead of full articles will show the summary and an original-source link.</small>
+    </section>
+  </form>
+  <script src="{{ url_for('static', filename='feed-editor.js') }}" defer></script>
+{% endblock %}

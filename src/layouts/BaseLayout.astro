@@ -4,6 +4,7 @@ import '../styles/global.css';
 interface Props { title?: string; description?: string }
 const { title = 'Lens on Security', description = 'Security concepts, seen through photographs.' } = Astro.props;
 const canonicalUrl = new URL(Astro.url.pathname, Astro.site);
+const rssUrl = new URL('rss.xml', Astro.site);
 ---
 <!doctype html>
 <html lang="en">
@@ -12,6 +13,7 @@ const canonicalUrl = new URL(Astro.url.pathname, Astro.site);
     <meta name="viewport" content="width=device-width" />
     <meta name="description" content={description} />
     <link rel="canonical" href={canonicalUrl} />
+    <link rel="alternate" type="application/rss+xml" title="Lens on Security RSS Feed" href={rssUrl} />
     <title>{title}</title>
   </head>
   <body>

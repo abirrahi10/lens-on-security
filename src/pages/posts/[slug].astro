@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import SiteFooter from '../../components/SiteFooter.astro';
 import SiteHeader from '../../components/SiteHeader.astro';
 import { getCollection, type CollectionEntry } from 'astro:content';
 
@@ -53,6 +54,7 @@ const base = import.meta.env.BASE_URL.endsWith('/')
       </section>
     )}
   </article>
+  <div class="shell"><SiteFooter /></div>
 </BaseLayout>
 
 <script>

@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import SiteFooter from '../components/SiteFooter.astro';
 import SiteHeader from '../components/SiteHeader.astro';
 import { existsSync } from 'node:fs';
 import about from '../data/about.json';
@@ -65,6 +66,6 @@ const initials = about.name.split(/\s+/).map((part) => part[0]).join('').slice(0
       </div>
     </article>
 
-    <footer>© 2026 Lens on Security</footer>
+    <SiteFooter />
   </section>
 </BaseLayout>

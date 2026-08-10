@@ -1,0 +1,112 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import SiteFooter from '../components/SiteFooter.astro';
+import SiteHeader from '../components/SiteHeader.astro';
+import reading from '../data/reading.json';
+import { fetchReadingFeeds, type FeedSource } from '../lib/feeds';
+
+const sources = reading.feeds as FeedSource[];
+const results = await fetchReadingFeeds(sources);
+const articles = results
+  .flatMap((result) => result.articles)
+  .sort((a, b) => b.timestamp - a.timestamp)
+  .slice(0, 60);
+const categories = ['Cybersecurity', 'Photography', 'Technology', 'Other'];
+const refreshed = new Intl.DateTimeFormat('en-US', {
+  month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'UTC', timeZoneName: 'short',
+}).format(new Date());
+---
+<BaseLayout title="Reading — Lens on Security" description="A curated reader of the cybersecurity, technology, and photography feeds followed by Abir Rahi.">
+  <section class="shell">
+    <SiteHeader active="reading" />
+
+    <article class="reading-page">
+      <header class="page-hero reading-hero">
+        <p class="kicker">Reading</p>
+        <h1>A shared reading desk.</h1>
+        <p>The latest writing from publications and people I follow, organized by topic and readable in one place.</p>
+      </header>
+
+      {results.length > 0 ? (
+        <>
+          <section class="reading-controls" aria-label="Filter articles by category">
+            <div class="category-filters" data-category-filters>
+              <button type="button" data-category="all" aria-pressed="true">All</button>
+              {categories.map((category) => <button type="button" data-category={category} aria-pressed="false">{category}</button>)}
+            </div>
+            <p>Updated {refreshed}</p>
+          </section>
+
+          {articles.length > 0 ? (
+            <section class="feed-stream" aria-live="polite" data-feed-stream>
+              {articles.map((article) => (
+                <details class="feed-article" data-feed-article data-category={article.category}>
+                  <summary>
+                    <span class="feed-meta">{article.category} <span aria-hidden="true">·</span> {article.sourceTitle}{article.published && <> <span aria-hidden="true">·</span> {article.published}</>}</span>
+                    <h2>{article.title}</h2>
+                    {article.summary && <p>{article.summary}</p>}
+                    <span class="read-here">Read here <span aria-hidden="true">↓</span></span>
+                  </summary>
+                  <div class="feed-article-body">
+                    <div class="syndicated-copy" set:html={article.content} />
+                    <p class="feed-attribution">
+                      Originally published by <a href={article.sourceUrl}>{article.sourceTitle}</a>.
+                      <a href={article.url}>View the original article</a>.
+                    </p>
+                  </div>
+                </details>
+              ))}
+              <p class="no-feed-results" data-no-feed-results hidden>No articles match this category.</p>
+            </section>
+          ) : (
+            <section class="reading-empty">
+              <p class="kicker">Feeds connected</p>
+              <h2>No recent articles are available right now.</h2>
+              <p>The subscriptions remain listed and will be checked again during the next refresh.</p>
+            </section>
+          )}
+
+          <section class="feed-sources" aria-labelledby="feed-sources-title">
+            <p class="kicker" id="feed-sources-title">Subscriptions</p>
+            <ul>
+              {results.map((result) => (
+                <li>
+                  <a href={result.source.siteUrl || result.source.feedUrl}>{result.source.title}</a>
+                  <span>{result.source.category || 'Uncategorized'}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        </>
+      ) : (
+        <section class="reading-empty">
+          <p class="kicker">Reading list</p>
+          <h2>Subscriptions are coming soon.</h2>
+          <p>The reading desk is ready; curated feeds will appear here as they are added.</p>
+        </section>
+      )}
+    </article>
+
+    <SiteFooter />
+  </section>
+</BaseLayout>
+
+<script>
+  const filters = [...document.querySelectorAll<HTMLButtonElement>('[data-category]')];
+  const articles = [...document.querySelectorAll<HTMLElement>('[data-feed-article]')];
+  const empty = document.querySelector<HTMLElement>('[data-no-feed-results]');
+
+  filters.forEach((filter) => {
+    filter.addEventListener('click', () => {
+      const selected = filter.dataset.category;
+      let visible = 0;
+      filters.forEach((button) => button.setAttribute('aria-pressed', String(button === filter)));
+      articles.forEach((article) => {
+        const matches = selected === 'all' || article.dataset.category === selected;
+        article.hidden = !matches;
+        if (matches) visible += 1;
+      });
+      if (empty) empty.hidden = visible !== 0;
+    });
+  });
+</script>

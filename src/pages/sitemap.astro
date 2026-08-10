@@ -1,0 +1,71 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import SiteFooter from '../components/SiteFooter.astro';
+import SiteHeader from '../components/SiteHeader.astro';
+
+const posts = (await getCollection('blog', ({ data }) => !data.draft))
+  .sort((a, b) => Date.parse(b.data.date) - Date.parse(a.data.date));
+const base = import.meta.env.BASE_URL.endsWith('/')
+  ? import.meta.env.BASE_URL
+  : `${import.meta.env.BASE_URL}/`;
+
+const pages = [
+  { href: base, title: 'Home', description: 'Browse every published visual security note.' },
+  { href: `${base}about/`, title: 'About', description: 'Meet Abir Rahi and learn why the journal exists.' },
+  { href: `${base}architecture/`, title: 'Architecture', description: 'See how the private publisher and public website work together.' },
+  { href: `${base}reading/`, title: 'Reading', description: 'Read the latest articles from Abir’s curated feed subscriptions.' },
+  { href: `${base}resume/`, title: 'Résumé', description: 'View Abir Rahi’s professional experience.' },
+];
+---
+<BaseLayout title="Sitemap — Lens on Security" description="Browse every page and published article on Lens on Security.">
+  <section class="shell">
+    <SiteHeader />
+
+    <article class="sitemap-page">
+      <header class="page-hero">
+        <p class="kicker">Sitemap</p>
+        <h1>Everything in one place.</h1>
+        <p>Browse the main pages, published notes, and ways to follow Lens on Security.</p>
+      </header>
+
+      <div class="sitemap-directory">
+        <section aria-labelledby="sitemap-pages">
+          <p class="kicker" id="sitemap-pages">Pages</p>
+          <ul>
+            {pages.map((page) => (
+              <li>
+                <a href={page.href}>{page.title}</a>
+                <p>{page.description}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section aria-labelledby="sitemap-notes">
+          <p class="kicker" id="sitemap-notes">Published notes</p>
+          <ul>
+            {posts.map((post) => (
+              <li>
+                <a href={`${base}posts/${post.slug}/`}>{post.data.title}</a>
+                <p>{post.data.date} <span aria-hidden="true">·</span> {post.data.dek}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section aria-labelledby="sitemap-follow">
+          <p class="kicker" id="sitemap-follow">Follow</p>
+          <ul>
+            <li>
+              <a href={`${base}rss.xml`}>Lens on Security RSS feed</a>
+              <p>Subscribe to new articles in your preferred feed reader.</p>
+            </li>
+          </ul>
+        </section>
+      </div>
+    </article>
+
+    <SiteFooter />
+  </section>
+</BaseLayout>

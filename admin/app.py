@@ -45,6 +45,7 @@ DRAFT_ID_RE = re.compile(r"^[a-f0-9]{32}$")
 PUBLISH_LOCK = threading.Lock()
 FRONTMATTER_RE = re.compile(r"\A---\r?\n(.*?)\r?\n---\r?\n?(.*)\Z", re.DOTALL)
 ABOUT_DATA_FILE = REPO_DIR / "src" / "data" / "about.json"
+READING_DATA_FILE = REPO_DIR / "src" / "data" / "reading.json"
 ABOUT_PORTRAIT_FILE = REPO_DIR / "public" / "images" / "about" / "abir-rahi.jpg"
 ABOUT_RESUME_FILE = REPO_DIR / "public" / "resume" / "abir-rahi-resume.pdf"
 DEFAULT_ABOUT = {
@@ -57,6 +58,8 @@ DEFAULT_ABOUT = {
     "resumeTitle": "Experience beyond the journal.",
     "portraitAlt": "Portrait of Abir Rahi",
 }
+DEFAULT_READING = {"feeds": []}
+READING_CATEGORIES = ("Cybersecurity", "Photography", "Technology", "Other")
 
 app = Flask(__name__)
 app.config.update(
@@ -141,6 +144,74 @@ def load_about() -> dict:
     ]
     about["whyBody"] = [str(value) for value in about.get("whyBody", [])]
     return about
+
+
+def load_reading() -> dict:
+    reading = json.loads(json.dumps(DEFAULT_READING))
+    if READING_DATA_FILE.is_file():
+        loaded = json.loads(READING_DATA_FILE.read_text(encoding="utf-8"))
+        if isinstance(loaded, dict):
+            reading.update(loaded)
+    reading["feeds"] = [
+        {
+            "title": str(value.get("title", "")),
+            "feedUrl": str(value.get("feedUrl", "")),
+            "siteUrl": str(value.get("siteUrl", "")),
+            "category": str(value.get("category", "")),
+            "visible": bool(value.get("visible", True)),
+        }
+        for value in reading.get("feeds", [])
+        if isinstance(value, dict)
+    ]
+    return reading
+
+
+def reading_form_values() -> tuple[dict, list[str]]:
+    titles = request.form.getlist("feed_title")
+    feed_urls = request.form.getlist("feed_url")
+    site_urls = request.form.getlist("feed_site_url")
+    categories = request.form.getlist("feed_category")
+    statuses = request.form.getlist("feed_status")
+    row_count = max(len(titles), len(feed_urls), len(site_urls), len(categories), len(statuses))
+    feeds = []
+    errors = []
+    seen_urls = set()
+
+    if row_count > 50:
+        errors.append("Keep the public reading list to 50 feeds or fewer.")
+
+    for index in range(min(row_count, 50)):
+        title = titles[index].strip() if index < len(titles) else ""
+        feed_url = feed_urls[index].strip() if index < len(feed_urls) else ""
+        site_url = site_urls[index].strip() if index < len(site_urls) else ""
+        category = categories[index].strip() if index < len(categories) else ""
+        status = statuses[index].strip() if index < len(statuses) else "public"
+        if not any((title, feed_url, site_url, category)):
+            continue
+
+        feeds.append({
+            "title": title,
+            "feedUrl": feed_url,
+            "siteUrl": site_url,
+            "category": category or "Uncategorized",
+            "visible": status != "hidden",
+        })
+        row_number = index + 1
+        if not title or not feed_url:
+            errors.append(f"Complete the display name and feed URL for subscription {row_number}.")
+            continue
+        if not validate_url(feed_url):
+            errors.append(f"Subscription {row_number} needs a complete http:// or https:// RSS/Atom URL.")
+        if site_url and not validate_url(site_url):
+            errors.append(f"Subscription {row_number} has an invalid website URL.")
+        if category not in READING_CATEGORIES:
+            errors.append(f"Choose an available category for subscription {row_number}.")
+        normalized_url = feed_url.casefold()
+        if normalized_url in seen_urls:
+            errors.append(f"Subscription {row_number} duplicates another feed URL.")
+        seen_urls.add(normalized_url)
+
+    return {"feeds": feeds}, errors
 
 
 def about_form_values() -> tuple[dict, list[str]]:
@@ -573,6 +644,22 @@ def publish_about(about: dict, portrait: bytes | None, resume: bytes | None) -> 
         return run_git("rev-parse", "HEAD")
 
 
+def publish_reading(reading: dict) -> str:
+    with PUBLISH_LOCK:
+        if run_git("status", "--porcelain"):
+            raise RuntimeError("The publishing repository has uncommitted changes and needs attention.")
+        run_git("pull", "--ff-only", GIT_REMOTE, GIT_BRANCH)
+
+        reading_json = (json.dumps(reading, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
+        write_atomic(READING_DATA_FILE, reading_json)
+        run_git("add", "--", str(READING_DATA_FILE.relative_to(REPO_DIR)))
+        if not run_git("diff", "--cached", "--name-only"):
+            raise ValueError("There are no feed changes to publish.")
+        run_git("commit", "-m", "Update Reading feeds")
+        run_git("push", GIT_REMOTE, GIT_BRANCH)
+        return run_git("rev-parse", "HEAD")
+
+
 @app.get("/")
 def root():
     return redirect(url_for("dashboard"))
@@ -629,6 +716,25 @@ def about_portrait():
     if not ABOUT_PORTRAIT_FILE.is_file():
         abort(404)
     return send_from_directory(ABOUT_PORTRAIT_FILE.parent, ABOUT_PORTRAIT_FILE.name, max_age=0)
+
+
+@app.route("/admin/reading", methods=["GET", "POST"])
+def edit_reading():
+    if request.method == "GET":
+        return render_template("feed-editor.html", reading=load_reading(), categories=READING_CATEGORIES, errors=[])
+
+    require_csrf()
+    reading, errors = reading_form_values()
+    if errors:
+        return render_template("feed-editor.html", reading=reading, categories=READING_CATEGORIES, errors=errors), 400
+    try:
+        publish_reading(reading)
+        flash("Reading subscriptions published. The public reader is rebuilding now.", "success")
+        return redirect(url_for("edit_reading"))
+    except (subprocess.SubprocessError, OSError, RuntimeError, ValueError, json.JSONDecodeError) as error:
+        app.logger.exception("Feed-list publishing failed")
+        flash(str(error), "error")
+        return render_template("feed-editor.html", reading=reading, categories=READING_CATEGORIES, errors=[]), 500
 
 
 @app.get("/admin/drafts/<draft_id>/images/<filename>")

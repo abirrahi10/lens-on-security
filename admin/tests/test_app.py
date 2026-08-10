@@ -19,6 +19,7 @@ class PublisherTests(unittest.TestCase):
         publisher.DRAFT_DIR = Path(self.temporary.name) / "drafts"
         publisher.REPO_DIR = Path(self.temporary.name) / "repository"
         publisher.ABOUT_DATA_FILE = publisher.REPO_DIR / "src" / "data" / "about.json"
+        publisher.READING_DATA_FILE = publisher.REPO_DIR / "src" / "data" / "reading.json"
         publisher.ABOUT_PORTRAIT_FILE = publisher.REPO_DIR / "public" / "images" / "about" / "abir-rahi.jpg"
         publisher.ABOUT_RESUME_FILE = publisher.REPO_DIR / "public" / "resume" / "abir-rahi-resume.pdf"
         (publisher.REPO_DIR / "src" / "content" / "blog").mkdir(parents=True)
@@ -74,6 +75,16 @@ class PublisherTests(unittest.TestCase):
             "crop_zoom": "1.4",
             "portrait_file": (portrait, "portrait.png"),
             "resume_file": (resume, "resume.pdf"),
+        }
+
+    def valid_feed_form(self):
+        return {
+            "csrf_token": self.csrf(),
+            "feed_title": ["Krebs on Security", "Photo Journal"],
+            "feed_url": ["https://example.com/security.xml", "https://example.org/feed.atom"],
+            "feed_site_url": ["https://example.com/", "https://example.org/"],
+            "feed_category": ["Cybersecurity", "Photography"],
+            "feed_status": ["public", "hidden"],
         }
 
     def add_published_post(self):
@@ -281,6 +292,67 @@ The published article body.
         self.assertEqual(response.status_code, 302)
         self.assertEqual(publisher.ABOUT_PORTRAIT_FILE.read_bytes(), b"existing portrait")
         self.assertEqual(publisher.ABOUT_RESUME_FILE.read_bytes(), b"existing resume")
+
+    def test_reading_editor_is_available_from_private_address(self):
+        response = self.client.get("/admin/reading", environ_base={"REMOTE_ADDR": "10.47.12.20"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"Edit Reading", response.data)
+        self.assertIn(b"RSS or Atom URL", response.data)
+        self.assertIn(b">Other</option>", response.data)
+
+    def test_feed_editor_publishes_categories_and_visibility(self):
+        def git_result(*args):
+            if args == ("diff", "--cached", "--name-only"):
+                return "src/data/reading.json"
+            if args == ("rev-parse", "HEAD"):
+                return "feed123"
+            return ""
+
+        with patch.object(publisher, "run_git", side_effect=git_result) as run_git:
+            response = self.client.post(
+                "/admin/reading",
+                data=self.valid_feed_form(),
+                environ_base={"REMOTE_ADDR": "192.168.4.20"},
+            )
+
+        self.assertEqual(response.status_code, 302)
+        reading = json.loads(publisher.READING_DATA_FILE.read_text(encoding="utf-8"))
+        self.assertEqual(reading["feeds"][0]["category"], "Cybersecurity")
+        self.assertTrue(reading["feeds"][0]["visible"])
+        self.assertFalse(reading["feeds"][1]["visible"])
+        self.assertTrue(any(call.args[:1] == ("push",) for call in run_git.call_args_list))
+
+    def test_feed_editor_rejects_duplicate_and_invalid_feed_urls(self):
+        data = self.valid_feed_form()
+        data["feed_url"] = ["not-a-url", "not-a-url"]
+
+        with patch.object(publisher, "run_git") as run_git:
+            response = self.client.post(
+                "/admin/reading",
+                data=data,
+                environ_base={"REMOTE_ADDR": "192.168.4.20"},
+            )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn(b"RSS/Atom URL", response.data)
+        self.assertIn(b"duplicates another feed", response.data)
+        run_git.assert_not_called()
+
+    def test_reading_editor_rejects_unknown_categories(self):
+        data = self.valid_feed_form()
+        data["feed_category"] = ["Cybersecurty", "Photography"]
+
+        with patch.object(publisher, "run_git") as run_git:
+            response = self.client.post(
+                "/admin/reading",
+                data=data,
+                environ_base={"REMOTE_ADDR": "192.168.4.20"},
+            )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn(b"Choose an available category", response.data)
+        run_git.assert_not_called()
 
     def test_draft_and_processed_image_are_saved(self):
         response = self.client.post(

@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import PostCard from '../components/PostCard.astro';
+import SiteFooter from '../components/SiteFooter.astro';
 import SiteHeader from '../components/SiteHeader.astro';
 import { getCollection } from 'astro:content';
 
@@ -28,7 +29,7 @@ const posts = (await getCollection('blog', ({ data }) => !data.draft))
       <p class="no-results" id="no-results" hidden>No notes match that search yet.</p>
     </section>
 
-    <footer>© 2026 Lens on Security</footer>
+    <SiteFooter />
   </section>
 </BaseLayout>
 
