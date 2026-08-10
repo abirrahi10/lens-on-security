@@ -69,6 +69,57 @@ import SiteHeader from '../components/SiteHeader.astro';
           </article>
         </div>
       </section>
+
+      <section class="publisher-tour" aria-labelledby="publisher-tour-title">
+        <header class="publisher-tour-intro">
+          <div>
+            <p class="kicker">Private publishing interface</p>
+            <h2 id="publisher-tour-title">What the editors do.</h2>
+          </div>
+          <p>The publisher turns common website updates into guided forms. It runs only on my private network; the public site receives the finished static files, never the editor itself.</p>
+        </header>
+
+        <div class="editor-gallery">
+          <figure class="editor-shot">
+            <a class="editor-shot-image" href="/images/architecture/article-editor.png?v=2" target="_blank" rel="noopener" aria-label="Open a larger view of the article editor screenshot">
+              <img src="/images/architecture/article-editor.png?v=2" alt="The private article editor showing an empty new article form, publishing controls, metadata fields, and formatting toolbar" loading="lazy">
+            </a>
+            <figcaption>
+              <p class="shot-number">01</p>
+              <p class="kicker">Article editor</p>
+              <h3>Write, preview, publish.</h3>
+              <p>The composer combines the article title, summary, metadata, photographs, sources, and body in one place. Formatting controls support headings, emphasis, lists, links, code, highlights, and the site’s color palette. Drafts can be saved or previewed privately before an explicit publish action.</p>
+            </figcaption>
+          </figure>
+
+          <figure class="editor-shot">
+            <a class="editor-shot-image" href="/images/architecture/about-editor.png?v=2" target="_blank" rel="noopener" aria-label="Open a larger view of the About editor screenshot">
+              <img src="/images/architecture/about-editor.png?v=2" alt="The private About editor showing profile fields and the headshot cropper" loading="lazy">
+            </a>
+            <figcaption>
+              <p class="shot-number">02</p>
+              <p class="kicker">About editor</p>
+              <h3>Maintain the public profile.</h3>
+              <p>Profile text, certifications, links, the site’s purpose, and résumé details can be updated without editing source files. A headshot tool provides drag-and-zoom positioning, then produces the same 4:5 crop used by the public page while removing embedded image metadata.</p>
+            </figcaption>
+          </figure>
+
+          <figure class="editor-shot">
+            <a class="editor-shot-image" href="/images/architecture/reading-editor.png?v=2" target="_blank" rel="noopener" aria-label="Open a larger view of the Reading editor screenshot">
+              <img src="/images/architecture/reading-editor.png?v=2" alt="The private Reading editor showing a feed name, category selector, and RSS address field" loading="lazy">
+            </a>
+            <figcaption>
+              <p class="shot-number">03</p>
+              <p class="kicker">Reading editor</p>
+              <h3>Curate subscribed sources.</h3>
+              <p>RSS and Atom feeds can be added, organized into fixed categories, hidden, or made public. Publishing updates the Reading page, where subscribed articles are collected into a single viewer and refreshed automatically throughout the day.</p>
+            </figcaption>
+          </figure>
+        </div>
+
+        <p class="privacy-caption">These screenshots use empty or already-public information. Private drafts, network addresses, access keys, and server configuration are intentionally excluded.</p>
+      </section>
+
     </article>
 
     <SiteFooter />
