@@ -33,13 +33,88 @@ const previewPane = richEditor?.querySelector('[data-rich-preview]');
 const csrfToken = document.querySelector('input[name="csrf_token"]');
 let previewTimer;
 let previewRequest;
+const undoStack = [];
+const redoStack = [];
+const historyLimit = 100;
+let inputGroupOpen = false;
+let inputGroupKind = '';
+let inputGroupTimer;
+let pendingInputSnapshot = null;
+let lastEditorSnapshot = null;
+let programmaticInput = false;
+
+function editorSnapshot() {
+  if (!bodyEditor) return null;
+  return {
+    value: bodyEditor.value,
+    selectionStart: bodyEditor.selectionStart,
+    selectionEnd: bodyEditor.selectionEnd,
+    scrollTop: bodyEditor.scrollTop,
+  };
+}
+
+lastEditorSnapshot = editorSnapshot();
+
+function pushHistory(stack, snapshot) {
+  if (!snapshot) return;
+  const previous = stack[stack.length - 1];
+  if (previous?.value === snapshot.value) return;
+  stack.push(snapshot);
+  if (stack.length > historyLimit) stack.shift();
+}
+
+function rememberUndoPoint() {
+  pushHistory(undoStack, editorSnapshot());
+  redoStack.length = 0;
+}
+
+function closeInputGroup() {
+  window.clearTimeout(inputGroupTimer);
+  inputGroupOpen = false;
+  inputGroupKind = '';
+}
+
+function beginEditorCommand() {
+  closeInputGroup();
+  rememberUndoPoint();
+}
+
+function restoreSnapshot(snapshot) {
+  if (!bodyEditor || !snapshot) return;
+  bodyEditor.value = snapshot.value;
+  bodyEditor.focus();
+  bodyEditor.setSelectionRange(snapshot.selectionStart, snapshot.selectionEnd);
+  bodyEditor.scrollTop = snapshot.scrollTop;
+  emitEditorInput();
+}
+
+function undoEditorChange() {
+  closeInputGroup();
+  const snapshot = undoStack.pop();
+  if (!snapshot) return;
+  pushHistory(redoStack, editorSnapshot());
+  restoreSnapshot(snapshot);
+}
+
+function redoEditorChange() {
+  closeInputGroup();
+  const snapshot = redoStack.pop();
+  if (!snapshot) return;
+  pushHistory(undoStack, editorSnapshot());
+  restoreSnapshot(snapshot);
+}
 
 function emitEditorInput() {
-  bodyEditor?.dispatchEvent(new Event('input', { bubbles: true }));
+  if (!bodyEditor) return;
+  programmaticInput = true;
+  bodyEditor.dispatchEvent(new Event('input', { bubbles: true }));
+  programmaticInput = false;
+  lastEditorSnapshot = editorSnapshot();
 }
 
 function replaceSelection(before, after, placeholder) {
   if (!bodyEditor) return;
+  beginEditorCommand();
   const start = bodyEditor.selectionStart;
   const end = bodyEditor.selectionEnd;
   const selected = bodyEditor.value.slice(start, end) || placeholder;
@@ -52,6 +127,7 @@ function replaceSelection(before, after, placeholder) {
 
 function formatSelectedLines(formatLine, placeholder) {
   if (!bodyEditor) return;
+  beginEditorCommand();
   const selectionStart = bodyEditor.selectionStart;
   const selectionEnd = bodyEditor.selectionEnd;
   const lineStart = bodyEditor.value.lastIndexOf('\n', Math.max(0, selectionStart - 1)) + 1;
@@ -67,6 +143,7 @@ function formatSelectedLines(formatLine, placeholder) {
 
 function insertDivider() {
   if (!bodyEditor) return;
+  beginEditorCommand();
   const position = bodyEditor.selectionStart;
   const prefix = position > 0 && !bodyEditor.value.slice(0, position).endsWith('\n\n') ? '\n\n' : '';
   const suffix = bodyEditor.value.slice(position).startsWith('\n\n') ? '' : '\n\n';
@@ -78,6 +155,7 @@ function insertDivider() {
 
 function insertLink() {
   if (!bodyEditor) return;
+  beginEditorCommand();
   const start = bodyEditor.selectionStart;
   const end = bodyEditor.selectionEnd;
   const label = bodyEditor.value.slice(start, end) || 'link text';
@@ -171,12 +249,64 @@ richEditor?.querySelectorAll('[data-editor-view]').forEach((button) => {
 bodyEditor?.addEventListener('keydown', (event) => {
   if (!(event.ctrlKey || event.metaKey)) return;
   const shortcut = event.key.toLowerCase();
+  if (shortcut === 'z') {
+    event.preventDefault();
+    if (event.shiftKey) redoEditorChange();
+    else undoEditorChange();
+    return;
+  }
+  if (shortcut === 'y') {
+    event.preventDefault();
+    redoEditorChange();
+    return;
+  }
   if (!['b', 'i', 'k'].includes(shortcut)) return;
   event.preventDefault();
   applyFormat({ b: 'bold', i: 'italic', k: 'link' }[shortcut]);
 });
 
-bodyEditor?.addEventListener('input', () => schedulePreview());
+bodyEditor?.addEventListener('beforeinput', (event) => {
+  if (event.inputType === 'historyUndo') {
+    event.preventDefault();
+    undoEditorChange();
+    return;
+  }
+  if (event.inputType === 'historyRedo') {
+    event.preventDefault();
+    redoEditorChange();
+    return;
+  }
+
+  pendingInputSnapshot = editorSnapshot();
+});
+
+bodyEditor?.addEventListener('input', (event) => {
+  if (programmaticInput) {
+    schedulePreview();
+    return;
+  }
+
+  const continuousKind = {
+    insertText: 'typing',
+    insertCompositionText: 'typing',
+    deleteContentBackward: 'deleting',
+    deleteContentForward: 'deleting',
+  }[event.inputType];
+
+  if (!inputGroupOpen || inputGroupKind !== continuousKind) {
+    closeInputGroup();
+    pushHistory(undoStack, pendingInputSnapshot || lastEditorSnapshot);
+    redoStack.length = 0;
+    inputGroupOpen = true;
+    inputGroupKind = continuousKind || event.inputType || 'editing';
+  }
+
+  window.clearTimeout(inputGroupTimer);
+  inputGroupTimer = window.setTimeout(closeInputGroup, continuousKind ? 750 : 0);
+  pendingInputSnapshot = null;
+  lastEditorSnapshot = editorSnapshot();
+  schedulePreview();
+});
 
 if (richEditor) {
   setEditorView(window.matchMedia('(max-width: 720px)').matches ? 'write' : 'split');
