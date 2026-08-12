@@ -34,6 +34,41 @@
       "siteUrl": "https://www.cisa.gov/",
       "category": "Cybersecurity",
       "visible": true
+    },
+    {
+      "title": "Light and Composition - Islam",
+      "feedUrl": "https://www.lightandcomposition.com/islamic-photography/feed/",
+      "siteUrl": "https://www.lightandcomposition.com/",
+      "category": "Photography",
+      "visible": true
+    },
+    {
+      "title": "Light and Composition - Nature",
+      "feedUrl": "https://www.lightandcomposition.com/nature-photography/feed/",
+      "siteUrl": "https://www.lightandcomposition.com/",
+      "category": "Photography",
+      "visible": true
+    },
+    {
+      "title": "Light and Composition - Wildlife",
+      "feedUrl": "https://www.lightandcomposition.com/wildlife-photography/feed/",
+      "siteUrl": "https://www.lightandcomposition.com/",
+      "category": "Photography",
+      "visible": true
+    },
+    {
+      "title": "Light and Composition - Sun",
+      "feedUrl": "https://www.lightandcomposition.com/sunrise-and-sunset-photography/feed/",
+      "siteUrl": "https://www.lightandcomposition.com/",
+      "category": "Photography",
+      "visible": true
+    },
+    {
+      "title": "Light and Composition - Architecture",
+      "feedUrl": "https://www.lightandcomposition.com/architectural-photography/feed/",
+      "siteUrl": "https://www.lightandcomposition.com/",
+      "category": "Photography",
+      "visible": true
     }
   ]
 }
