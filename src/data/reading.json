@@ -69,6 +69,13 @@
       "siteUrl": "https://www.lightandcomposition.com/",
       "category": "Photography",
       "visible": true
+    },
+    {
+      "title": "Photography Life",
+      "feedUrl": "https://photographylife.com/feed",
+      "siteUrl": "https://photographylife.com/",
+      "category": "Photography",
+      "visible": true
     }
   ]
 }
