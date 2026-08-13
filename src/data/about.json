@@ -7,12 +7,16 @@
     {
       "label": "LinkedIn",
       "url": "https://www.linkedin.com/in/abir-rahi/"
+    },
+    {
+      "label": "GitHub",
+      "url": "https://github.com/abirrahi10"
     }
   ],
-  "summary": "I am a computer science graduate with experience in technology operations, software development, technical instruction, and hands-on infrastructure projects. I use Lens on Security to keep building practical security skills and explain what I learn clearly.",
+  "summary": "I work across IT systems and operations, bringing experience from the education sector and a growing focus on cybersecurity. I’m passionate about keeping technology reliable, secure, and out of the way of the people who depend on it. As I continue growing in the field, I’m especially interested in engineering and designing systems that better protect our data and the technology we use every day.",
   "whyTitle": "Security is easier to understand when you can see it.",
   "whyBody": [
-    "I created Lens on Security to connect ordinary photographs with cybersecurity concepts. A building, a road, a lock, or a set of pillars can reveal something about identity, networks, resilience, monitoring, and the decisions that keep systems safe.",
+    "I created Lens on Security to connect my ordinary photographs with cybersecurity concepts. A building, a road, a lock, or a set of pillars can reveal something about identity, networks, resilience, monitoring, and the decisions that keep systems safe.",
     "This site is both a learning journal and a place to practice communicating security clearly. Each article starts with something visible and uses it as a path into the less visible systems that shape our digital lives."
   ],
   "resumeTitle": "Experience beyond the journal.",
